@@ -209,16 +209,7 @@ var STANDINGS = buildStandings();
 // Returns map of { fixtureId: { home, away, minute, status } }
 function useLiveScores(now) {
   var _l = useState({}); var liveData=_l[0]; var setLiveData=_l[1];
-  var _n = useState(false); var notifGranted=_n[0]; var setNotifGranted=_n[1];
   var prevScores = React.useRef({});
-
-  function requestNotif() {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().then(function(p){ setNotifGranted(p==="granted"); });
-    } else if (Notification.permission === "granted") {
-      setNotifGranted(true);
-    }
-  }
 
   function sendNotif(title, body) {
     if ("Notification" in window && Notification.permission === "granted") {
@@ -227,37 +218,38 @@ function useLiveScores(now) {
   }
 
   function poll() {
-    fetch("/api/live").then(function(r){return r.json();}).then(function(data){
-      var fixtures = data.response || [];
-      var map = {};
-      fixtures.forEach(function(f) {
-        var id = f.fixture.id;
-        var home = f.goals.home !== null ? f.goals.home : 0;
-        var away = f.goals.away !== null ? f.goals.away : 0;
-        var minute = f.fixture.status.elapsed;
-        var status = f.fixture.status.short;
-        map[id] = {home:home, away:away, minute:minute, status:status,
-                   team1:f.teams.home.name, team2:f.teams.away.name};
-        // Check for new goals vs previous
-        var prev = prevScores.current[id];
-        if (prev) {
-          if (home > prev.home) {
-            sendNotif("⚽ GOAL! " + f.teams.home.name, f.teams.home.name+" "+home+" - "+away+" "+f.teams.away.name+" ("+minute+"')");
+    // Add timestamp to bust cache
+    fetch("/api/live?t=" + Date.now())
+      .then(function(r){return r.json();})
+      .then(function(data){
+        var fixtures = data.response || [];
+        var map = {};
+        fixtures.forEach(function(f) {
+          var id = f.fixture.id;
+          var home = f.goals.home !== null ? f.goals.home : 0;
+          var away = f.goals.away !== null ? f.goals.away : 0;
+          var minute = f.fixture.status.elapsed;
+          var status = f.fixture.status.short;
+          map[id] = {home:home, away:away, minute:minute, status:status,
+                     team1:f.teams.home.name, team2:f.teams.away.name};
+          // Notify on goals
+          var prev = prevScores.current[id];
+          if (prev) {
+            if (home > prev.home) sendNotif("\u26BD GOAL! " + f.teams.home.name, f.teams.home.name+" "+home+" - "+away+" "+f.teams.away.name+" ("+minute+"')");
+            if (away > prev.away) sendNotif("\u26BD GOAL! " + f.teams.away.name, f.teams.home.name+" "+home+" - "+away+" "+f.teams.away.name+" ("+minute+"')");
           }
-          if (away > prev.away) {
-            sendNotif("⚽ GOAL! " + f.teams.away.name, f.teams.home.name+" "+home+" - "+away+" "+f.teams.away.name+" ("+minute+"')");
-          }
-        }
-      });
-      prevScores.current = map;
-      setLiveData(map);
-    }).catch(function(){});
+        });
+        prevScores.current = map;
+        setLiveData(map);
+      }).catch(function(){});
   }
 
   useEffect(function(){
-    requestNotif();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
     poll();
-    var t = setInterval(poll, 60000);
+    var t = setInterval(poll, 30000); // poll every 30 seconds
     return function(){ clearInterval(t); };
   }, []);
 
