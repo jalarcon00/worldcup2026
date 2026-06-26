@@ -9,7 +9,6 @@ const API_BASE = 'https://v3.football.api-sports.io';
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Proxy endpoint — browser calls /api/live, server calls API-Football
 app.get('/api/live', async (req, res) => {
   try {
     const r = await fetch(`${API_BASE}/fixtures?league=1&season=2026&live=all`, {
@@ -22,7 +21,6 @@ app.get('/api/live', async (req, res) => {
   }
 });
 
-// Proxy for a specific fixture (for score + minute polling)
 app.get('/api/fixture/:id', async (req, res) => {
   try {
     const r = await fetch(`${API_BASE}/fixtures?id=${req.params.id}`, {
