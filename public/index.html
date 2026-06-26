@@ -479,6 +479,7 @@ function ForecastTab({now, tx, liveData}) {
   return h("div",{style:{padding:"14px 14px 0"}},
     h("div",{style:{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}, introText),
     upcoming.length===0 && h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}}, noUpcoming),
+    upcoming.map(function(m){
       var key=m.team1+"|"+m.team2;
       var p=preds[key];
       var isCol=m.team1==="Colombia"||m.team2==="Colombia";
