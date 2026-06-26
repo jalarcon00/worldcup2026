@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+m<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -30,7 +30,7 @@ const T = {
     noLive:"No matches live right now.",
     schedule:"Schedule", standings:"Standings", bracket:"Bracket",
     team:"Team", qualify:"Top 2 advance · Best 8 third-place teams also qualify",
-    colombia:"🇨🇴 Colombia", vs:"VS",
+    colombia:"🇨🇴 Colombia", vs:"VS", predictedScore:"Predicted Score", confidence:"Confidence",
     round32:"R32", round16:"R16", qf:"QF", sf:"SF", third:"3rd Place", final:"Final",
   },
   es: {
@@ -39,7 +39,7 @@ const T = {
     noLive:"No hay partidos en vivo ahora.",
     schedule:"Partidos", standings:"Tabla", bracket:"Llave",
     team:"Equipo", qualify:"Top 2 avanzan · Los 8 mejores terceros también clasifican",
-    colombia:"🇨🇴 Colombia", vs:"VS",
+    colombia:"🇨🇴 Colombia", vs:"VS", predictedScore:"Marcador Predicho", confidence:"Confianza",
     round32:"R32", round16:"R16", qf:"CF", sf:"SF", third:"Tercer Lugar", final:"Final",
   }
 };
@@ -440,6 +440,87 @@ function BracketTab({now, tx}) {
   );
 }
 
+function ForecastTab({now, tx, liveData}) {
+  var upcoming = RAW_MATCHES.filter(function(m){return m.group && mStatus(m,now,liveData)==="upcoming";}).slice(0,5);
+  var _p=useState({}); var preds=_p[0]; var setPreds=_p[1];
+  var _l=useState({}); var loading=_l[0]; var setLoading=_l[1];
+
+  function getPred(m) {
+    var key = m.team1+"|"+m.team2;
+    if (preds[key]||loading[key]) return;
+    setLoading(function(l){var n=Object.assign({},l);n[key]=true;return n;});
+    fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-6", max_tokens:1000,
+        messages:[{role:"user",content:"You are a 2026 World Cup analyst. Predict: "+m.team1+" vs "+m.team2+" ("+m.group+", "+m.ground+"). Respond ONLY valid JSON no markdown: {\"homeWin\":<0-100>,\"draw\":<0-100>,\"awayWin\":<0-100>,\"score\":\"e.g. 2-1\",\"analysis\":\"2-3 sentences\",\"confidence\":\"High\" or \"Medium\" or \"Low\"}"}]
+      })
+    }).then(function(r){return r.json();}).then(function(data){
+      var text=(data.content&&data.content.find(function(c){return c.type==="text";})||{}).text||"{}";
+      try {
+        var p=JSON.parse(text.replace(/```json|```/g,"").trim());
+        setPreds(function(pr){var n=Object.assign({},pr);n[key]=p;return n;});
+      } catch(e) {
+        setPreds(function(pr){var n=Object.assign({},pr);n[key]={error:true};return n;});
+      }
+    }).catch(function(){
+      setPreds(function(pr){var n=Object.assign({},pr);n[key]={error:true};return n;});
+    }).finally(function(){
+      setLoading(function(l){var n=Object.assign({},l);n[key]=false;return n;});
+    });
+  }
+
+  useEffect(function(){ upcoming.forEach(getPred); }, [upcoming.length]);
+
+  var cColor=function(c){return c==="High"?C.green:c==="Medium"?"#fbbf24":"#818cf8";};
+  var cBg=function(c){return c==="High"?"#14532d":c==="Medium"?"#713f12":"#1e1b4b";};
+
+  return h("div",{style:{padding:"14px 14px 0"}},
+    h("div",{style:{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}},
+      lang==="es"?"Pronósticos con IA para los próximos partidos.":"AI-powered match previews for upcoming matches."
+    ),
+    upcoming.length===0 && h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},"No upcoming matches to predict."),
+    upcoming.map(function(m){
+      var key=m.team1+"|"+m.team2;
+      var p=preds[key];
+      var isCol=m.team1==="Colombia"||m.team2==="Colombia";
+      var dt=parseUTC(m.date,m.time);
+      return h("div",{key:key,style:{background:isCol?"#1a1800":C.card,border:"1px solid "+(isCol?C.col+"55":C.border),borderRadius:12,marginBottom:12,padding:"15px"}},
+        isCol&&h("div",{style:{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}},tx.colombia),
+        h("div",{style:{textAlign:"center",marginBottom:12}},
+          h("div",{style:{fontSize:14,fontWeight:700,color:C.white}},fl(m.team1)+" "+m.team1+"  vs  "+m.team2+" "+fl(m.team2)),
+          h("div",{style:{fontSize:11,color:C.muted,marginTop:3}},fmtDate(dt)+" \u00B7 "+fmtTime(dt)+" \u00B7 "+m.ground)
+        ),
+        loading[key]&&h("div",{style:{textAlign:"center",color:C.muted,fontSize:12,padding:"10px 0"}},"Generating prediction..."),
+        !loading[key]&&!p&&h("button",{onClick:function(){getPred(m);},style:{width:"100%",padding:"8px",background:C.gold+"22",border:"1px solid "+C.gold,borderRadius:8,color:C.gold,fontSize:12,fontWeight:600,cursor:"pointer"}},"Generate Prediction"),
+        p&&!p.error&&h("div",null,
+          h("div",{style:{display:"flex",borderRadius:5,overflow:"hidden",height:7,marginBottom:5,gap:2}},
+            h("div",{style:{flex:p.homeWin||0,background:C.blue,borderRadius:"4px 0 0 4px"}}),
+            h("div",{style:{flex:p.draw||0,background:C.muted}}),
+            h("div",{style:{flex:p.awayWin||0,background:C.red,borderRadius:"0 4px 4px 0"}})
+          ),
+          h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:12}},
+            h("span",{style:{color:C.blue,fontWeight:700}},p.homeWin+"% "+m.team1),
+            h("span",{style:{color:C.muted}},p.draw+"% Draw"),
+            h("span",{style:{color:C.red,fontWeight:700}},p.awayWin+"% "+m.team2)
+          ),
+          h("div",{style:{background:"#0a0f1e",borderRadius:8,padding:"7px 12px",textAlign:"center",marginBottom:10}},
+            h("div",{style:{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:2}},tx.predictedScore||"Predicted Score"),
+            h("div",{style:{fontSize:16,fontWeight:800,color:C.goldL}},m.team1+" "+p.score+" "+m.team2)
+          ),
+          h("p",{style:{fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:8}},p.analysis),
+          h("div",{style:{fontSize:11,color:C.muted}},
+            (tx.confidence||"Confidence"),
+            h("span",{style:{display:"inline-block",padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:cBg(p.confidence),color:cColor(p.confidence),marginLeft:6}},p.confidence)
+          )
+        ),
+        p&&p.error&&h("div",{style:{fontSize:12,color:C.muted,textAlign:"center",padding:"8px 0"}},"Prediction not available.")
+      );
+    })
+  );
+}
+
 function App() {
   var _t=useState("schedule"); var tab=_t[0]; var setTab=_t[1];
   var _n=useState(new Date()); var now=_n[0]; var setNow=_n[1];
@@ -450,9 +531,10 @@ function App() {
   useEffect(function(){var t=setInterval(function(){setNow(new Date());},60000);return function(){clearInterval(t);};}, []);
 
   var TABS=[
-    {id:"schedule", label:tx.schedule, icon:"\uD83D\uDCC5", dot: liveCount > 0},
-    {id:"standings",label:tx.standings,icon:"\uD83D\uDCCA", dot: false},
-    {id:"bracket",  label:tx.bracket,  icon:"\uD83C\uDFC6", dot: false},
+    {id:"schedule", label:tx.schedule,  icon:"\uD83D\uDCC5", dot: liveCount > 0},
+    {id:"standings",label:tx.standings, icon:"\uD83D\uDCCA", dot: false},
+    {id:"forecast", label:lang==="es"?"Pronóstico":"Forecast", icon:"\uD83D\uDD2E", dot: false},
+    {id:"bracket",  label:tx.bracket,   icon:"\uD83C\uDFC6", dot: false},
   ];
 
   return h("div",{style:{background:C.bg,minHeight:"100vh",color:"#e5e7eb",maxWidth:430,margin:"0 auto",paddingBottom:80}},
@@ -481,6 +563,7 @@ function App() {
     ),
     tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData}),
     tab==="standings" && h(StandingsTab,{tx:tx}),
+    tab==="forecast"  && h(ForecastTab,{now:now,tx:tx,liveData:liveData}),
     tab==="bracket"   && h(BracketTab,{now:now,tx:tx}),
     h("div",{style:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:"1px solid "+C.border,display:"flex",zIndex:20}},
       TABS.map(function(t){return h("button",{key:t.id,onClick:function(){setTab(t.id);},style:{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s",position:"relative"}},
