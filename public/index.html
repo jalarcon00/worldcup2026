@@ -25,21 +25,21 @@ const { useState, useEffect, useCallback, createElement: h } = React;
 
 const T = {
   en: {
-    eyebrow:"FIFA World Cup", title:"2026 · USA · MEX · CAN", sub:"🇨🇴 Group K · Colombia · Real data",
-    live:"🔴 Live", next:"Next", results:"Results", knockout:"🏆 Knockout",
+    eyebrow:"FIFA World Cup", title:"2026 路 USA 路 MEX 路 CAN", sub:"馃嚚馃嚧 Group K 路 Colombia 路 Real data",
+    live:"馃敶 Live", next:"Next", results:"Results", knockout:"馃弳 Knockout",
     noLive:"No matches live right now.",
     schedule:"Schedule", standings:"Standings", bracket:"Bracket",
-    team:"Team", qualify:"Top 2 advance · Best 8 third-place teams also qualify",
-    colombia:"🇨🇴 Colombia", vs:"VS", predictedScore:"Predicted Score", confidence:"Confidence",
+    team:"Team", qualify:"Top 2 advance 路 Best 8 third-place teams also qualify",
+    colombia:"馃嚚馃嚧 Colombia", vs:"VS", predictedScore:"Predicted Score", confidence:"Confidence",
     round32:"R32", round16:"R16", qf:"QF", sf:"SF", third:"3rd Place", final:"Final",
   },
   es: {
-    eyebrow:"Copa Mundial FIFA", title:"2026 · USA · MEX · CAN", sub:"🇨🇴 Grupo K · Colombia · Datos reales",
-    live:"🔴 En vivo", next:"Próximos", results:"Resultados", knockout:"🏆 Eliminación",
+    eyebrow:"Copa Mundial FIFA", title:"2026 路 USA 路 MEX 路 CAN", sub:"馃嚚馃嚧 Grupo K 路 Colombia 路 Datos reales",
+    live:"馃敶 En vivo", next:"Pr贸ximos", results:"Resultados", knockout:"馃弳 Eliminaci贸n",
     noLive:"No hay partidos en vivo ahora.",
     schedule:"Partidos", standings:"Tabla", bracket:"Llave",
-    team:"Equipo", qualify:"Top 2 avanzan · Los 8 mejores terceros también clasifican",
-    colombia:"🇨🇴 Colombia", vs:"VS", predictedScore:"Marcador Predicho", confidence:"Confianza",
+    team:"Equipo", qualify:"Top 2 avanzan 路 Los 8 mejores terceros tambi茅n clasifican",
+    colombia:"馃嚚馃嚧 Colombia", vs:"VS", predictedScore:"Marcador Predicho", confidence:"Confianza",
     round32:"R32", round16:"R16", qf:"CF", sf:"SF", third:"Tercer Lugar", final:"Final",
   }
 };
@@ -64,10 +64,10 @@ const RAW_MATCHES = [
   {round:"Matchday 14",date:"2026-06-24",time:"18:00 UTC-4",team1:"Scotland",team2:"Brazil",score:{ft:[0,3]},group:"Group C",ground:"Miami (Miami Gardens)"},
   {round:"Matchday 14",date:"2026-06-24",time:"18:00 UTC-4",team1:"Morocco",team2:"Haiti",score:{ft:[4,2]},group:"Group C",ground:"Atlanta"},
   {round:"Matchday 2",date:"2026-06-12",time:"18:00 UTC-7",team1:"USA",team2:"Paraguay",score:{ft:[4,1]},group:"Group D",ground:"Los Angeles (Inglewood)"},
-  {round:"Matchday 3",date:"2026-06-13",time:"21:00 UTC-7",team1:"Australia",team2:"Türkiye",score:{ft:[2,0]},group:"Group D",ground:"Vancouver"},
+  {round:"Matchday 3",date:"2026-06-13",time:"21:00 UTC-7",team1:"Australia",team2:"T眉rkiye",score:{ft:[2,0]},group:"Group D",ground:"Vancouver"},
   {round:"Matchday 9",date:"2026-06-19",time:"12:00 UTC-7",team1:"USA",team2:"Australia",score:{ft:[2,0]},group:"Group D",ground:"Seattle"},
-  {round:"Matchday 9",date:"2026-06-19",time:"20:00 UTC-7",team1:"Türkiye",team2:"Paraguay",score:{ft:[0,1]},group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
-  {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Türkiye",team2:"USA",group:"Group D",ground:"Los Angeles (Inglewood)"},
+  {round:"Matchday 9",date:"2026-06-19",time:"20:00 UTC-7",team1:"T眉rkiye",team2:"Paraguay",score:{ft:[0,1]},group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
+  {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"T眉rkiye",team2:"USA",group:"Group D",ground:"Los Angeles (Inglewood)"},
   {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Paraguay",team2:"Australia",group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
   {round:"Matchday 4",date:"2026-06-14",time:"12:00 UTC-5",team1:"Germany",team2:"Cura\u00e7ao",score:{ft:[7,1]},group:"Group E",ground:"Houston"},
   {round:"Matchday 4",date:"2026-06-14",time:"19:00 UTC-4",team1:"Ivory Coast",team2:"Ecuador",score:{ft:[1,0]},group:"Group E",ground:"Philadelphia"},
@@ -214,7 +214,7 @@ function buildStandings() {
 }
 var STANDINGS = buildStandings();
 
-// ── LIVE DATA HOOK ────────────────────────────────────────────────────────────
+// 鈹€鈹€ LIVE DATA HOOK 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Polls /api/live every 60 seconds when there are live matches
 // Returns map of { fixtureId: { home, away, minute, status } }
 function useLiveScores(now) {
@@ -266,12 +266,12 @@ function useLiveScores(now) {
   return liveData;
 }
 
-// ── COMPONENTS ────────────────────────────────────────────────────────────────
+// 鈹€鈹€ COMPONENTS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
-// Normalize team names for fuzzy matching (handles Türkiye vs Turkey, etc.)
+// Normalize team names for fuzzy matching (handles T眉rkiye vs Turkey, etc.)
 function normalizeName(n) {
   return n.toLowerCase()
-    .replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/ş/g,"s").replace(/ı/g,"i").replace(/ğ/g,"g")
+    .replace(/眉/g,"u").replace(/枚/g,"o").replace(/莽/g,"c").replace(/艧/g,"s").replace(/谋/g,"i").replace(/臒/g,"g")
     .replace(/[^a-z]/g,"");
 }
 
@@ -298,7 +298,7 @@ function MatchCard({m, now, tx, liveData}) {
   var displayMinute = null;
   var halfTime = false;
   if (isLive && apiData) {
-    displayScore = apiData.home + " – " + apiData.away;
+    displayScore = apiData.home + " 鈥?" + apiData.away;
     displayMinute = apiData.minute ? apiData.minute+"'" : null;
     halfTime = apiData.status === "HT";
   } else if (m.score) {
@@ -449,21 +449,12 @@ function ForecastTab({now, tx, liveData}) {
     var key = m.team1+"|"+m.team2;
     if (preds[key]||loading[key]) return;
     setLoading(function(l){var n=Object.assign({},l);n[key]=true;return n;});
-    fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-6", max_tokens:1000,
-        messages:[{role:"user",content:"You are a 2026 World Cup analyst. Predict: "+m.team1+" vs "+m.team2+" ("+m.group+", "+m.ground+"). Respond ONLY valid JSON no markdown: {\"homeWin\":<0-100>,\"draw\":<0-100>,\"awayWin\":<0-100>,\"score\":\"e.g. 2-1\",\"analysis\":\"2-3 sentences\",\"confidence\":\"High\" or \"Medium\" or \"Low\"}"}]
-      })
-    }).then(function(r){return r.json();}).then(function(data){
-      var text=(data.content&&data.content.find(function(c){return c.type==="text";})||{}).text||"{}";
-      try {
-        var p=JSON.parse(text.replace(/```json|```/g,"").trim());
-        setPreds(function(pr){var n=Object.assign({},pr);n[key]=p;return n;});
-      } catch(e) {
-        setPreds(function(pr){var n=Object.assign({},pr);n[key]={error:true};return n;});
-      }
+    fetch("/api/predict", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({team1:m.team1, team2:m.team2, group:m.group, ground:m.ground})
+    }).then(function(r){return r.json();}).then(function(p){
+      setPreds(function(pr){var n=Object.assign({},pr);n[key]=p.error?{error:true}:p;return n;});
     }).catch(function(){
       setPreds(function(pr){var n=Object.assign({},pr);n[key]={error:true};return n;});
     }).finally(function(){
@@ -473,9 +464,9 @@ function ForecastTab({now, tx, liveData}) {
 
   var cColor=function(c){return c==="High"?C.green:c==="Medium"?"#fbbf24":"#818cf8";};
   var cBg=function(c){return c==="High"?"#14532d":c==="Medium"?"#713f12":"#1e1b4b";};
-  var btnLabel = tx.predictedScore==="Marcador Predicho" ? "Generar pronóstico" : "Generate Prediction";
-  var introText = tx.predictedScore==="Marcador Predicho" ? "Pronósticos con IA para los próximos partidos." : "AI-powered match previews for upcoming matches.";
-  var noUpcoming = tx.predictedScore==="Marcador Predicho" ? "No hay partidos próximos para predecir." : "No upcoming matches to predict.";
+  var btnLabel = tx.predictedScore==="Marcador Predicho" ? "Generar pron贸stico" : "Generate Prediction";
+  var introText = tx.predictedScore==="Marcador Predicho" ? "Pron贸sticos con IA para los pr贸ximos partidos." : "AI-powered match previews for upcoming matches.";
+  var noUpcoming = tx.predictedScore==="Marcador Predicho" ? "No hay partidos pr贸ximos para predecir." : "No upcoming matches to predict.";
   return h("div",{style:{padding:"14px 14px 0"}},
     h("div",{style:{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}, introText),
     upcoming.length===0 && h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}}, noUpcoming),
@@ -531,7 +522,7 @@ function App() {
   var TABS=[
     {id:"schedule", label:tx.schedule,  icon:"\uD83D\uDCC5", dot: liveCount > 0},
     {id:"standings",label:tx.standings, icon:"\uD83D\uDCCA", dot: false},
-    {id:"forecast", label:lang==="es"?"Pronóstico":"Forecast", icon:"\uD83D\uDD2E", dot: false},
+    {id:"forecast", label:lang==="es"?"Pron贸stico":"Forecast", icon:"\uD83D\uDD2E", dot: false},
     {id:"bracket",  label:tx.bracket,   icon:"\uD83C\uDFC6", dot: false},
   ];
 
