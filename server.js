@@ -39,6 +39,8 @@ app.get('/api/fixtures', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// Today's fixtures
+app.get('/api/today', async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const r = await fetch(`${API_BASE}/fixtures?league=1&season=2026&date=${today}`, {
