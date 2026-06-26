@@ -3,31 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="WC 2026" />
 <title>World Cup 2026</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0a0f1e; font-family: -apple-system, 'Inter', system-ui, sans-serif; color: #e5e7eb; }
   @keyframes spin  { to { transform: rotate(360deg); } }
   @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
   button { font-family: inherit; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0a0f1e; }
-  ::-webkit-scrollbar-thumb { background: #1f2f4a; border-radius: 2px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
+<script>
+const { useState, useEffect, useCallback, createElement: h } = React;
 
-<script type="text/babel">
-const { useState, useEffect, useCallback } = React;
-
-// ── DATA ─────────────────────────────────────────────────────────────────────
 const RAW_MATCHES = [
   {round:"Matchday 1",date:"2026-06-11",time:"13:00 UTC-6",team1:"Mexico",team2:"South Africa",score:{ft:[2,0]},group:"Group A",ground:"Mexico City"},
   {round:"Matchday 1",date:"2026-06-11",time:"20:00 UTC-6",team1:"South Korea",team2:"Czech Republic",score:{ft:[2,1]},group:"Group A",ground:"Guadalajara (Zapopan)"},
@@ -53,11 +48,11 @@ const RAW_MATCHES = [
   {round:"Matchday 9",date:"2026-06-19",time:"20:00 UTC-7",team1:"Turkey",team2:"Paraguay",score:{ft:[0,1]},group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
   {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Turkey",team2:"USA",group:"Group D",ground:"Los Angeles (Inglewood)"},
   {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Paraguay",team2:"Australia",group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
-  {round:"Matchday 4",date:"2026-06-14",time:"12:00 UTC-5",team1:"Germany",team2:"Curaçao",score:{ft:[7,1]},group:"Group E",ground:"Houston"},
+  {round:"Matchday 4",date:"2026-06-14",time:"12:00 UTC-5",team1:"Germany",team2:"Cura\u00e7ao",score:{ft:[7,1]},group:"Group E",ground:"Houston"},
   {round:"Matchday 4",date:"2026-06-14",time:"19:00 UTC-4",team1:"Ivory Coast",team2:"Ecuador",score:{ft:[1,0]},group:"Group E",ground:"Philadelphia"},
   {round:"Matchday 10",date:"2026-06-20",time:"16:00 UTC-4",team1:"Germany",team2:"Ivory Coast",score:{ft:[2,1]},group:"Group E",ground:"Toronto"},
-  {round:"Matchday 10",date:"2026-06-20",time:"19:00 UTC-5",team1:"Ecuador",team2:"Curaçao",score:{ft:[0,0]},group:"Group E",ground:"Kansas City"},
-  {round:"Matchday 15",date:"2026-06-25",time:"16:00 UTC-4",team1:"Curaçao",team2:"Ivory Coast",score:{ft:[0,2]},group:"Group E",ground:"Philadelphia"},
+  {round:"Matchday 10",date:"2026-06-20",time:"19:00 UTC-5",team1:"Ecuador",team2:"Cura\u00e7ao",score:{ft:[0,0]},group:"Group E",ground:"Kansas City"},
+  {round:"Matchday 15",date:"2026-06-25",time:"16:00 UTC-4",team1:"Cura\u00e7ao",team2:"Ivory Coast",score:{ft:[0,2]},group:"Group E",ground:"Philadelphia"},
   {round:"Matchday 15",date:"2026-06-25",time:"16:00 UTC-4",team1:"Ecuador",team2:"Germany",score:{ft:[2,1]},group:"Group E",ground:"New York/New Jersey (East Rutherford)"},
   {round:"Matchday 4",date:"2026-06-14",time:"15:00 UTC-5",team1:"Netherlands",team2:"Japan",score:{ft:[2,2]},group:"Group F",ground:"Dallas (Arlington)"},
   {round:"Matchday 4",date:"2026-06-14",time:"20:00 UTC-6",team1:"Sweden",team2:"Tunisia",score:{ft:[5,1]},group:"Group F",ground:"Monterrey (Guadalupe)"},
@@ -135,299 +130,219 @@ const RAW_MATCHES = [
   {round:"Final",date:"2026-07-19",time:"15:00 UTC-4",team1:"W101",team2:"W102",ground:"New York/New Jersey (East Rutherford)"},
 ];
 
-const FLAGS = {
-  "Mexico":"🇲🇽","South Africa":"🇿🇦","South Korea":"🇰🇷","Czech Republic":"🇨🇿",
-  "Canada":"🇨🇦","Bosnia & Herzegovina":"🇧🇦","Qatar":"🇶🇦","Switzerland":"🇨🇭",
-  "Brazil":"🇧🇷","Morocco":"🇲🇦","Haiti":"🇭🇹","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-  "USA":"🇺🇸","Paraguay":"🇵🇾","Australia":"🇦🇺","Turkey":"🇹🇷",
-  "Germany":"🇩🇪","Curaçao":"🇨🇼","Ivory Coast":"🇨🇮","Ecuador":"🇪🇨",
-  "Netherlands":"🇳🇱","Japan":"🇯🇵","Sweden":"🇸🇪","Tunisia":"🇹🇳",
-  "Belgium":"🇧🇪","Egypt":"🇪🇬","Iran":"🇮🇷","New Zealand":"🇳🇿",
-  "Spain":"🇪🇸","Cape Verde":"🇨🇻","Saudi Arabia":"🇸🇦","Uruguay":"🇺🇾",
-  "France":"🇫🇷","Senegal":"🇸🇳","Iraq":"🇮🇶","Norway":"🇳🇴",
-  "Argentina":"🇦🇷","Algeria":"🇩🇿","Austria":"🇦🇹","Jordan":"🇯🇴",
-  "Portugal":"🇵🇹","DR Congo":"🇨🇩","Uzbekistan":"🇺🇿","Colombia":"🇨🇴",
-  "England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Croatia":"🇭🇷","Ghana":"🇬🇭","Panama":"🇵🇦",
-};
-const fl = n => FLAGS[n] || "🏳️";
+const FLAGS = {"Mexico":"\uD83C\uDDF2\uD83C\uDDFD","South Africa":"\uD83C\uDDFF\uD83C\uDDE6","South Korea":"\uD83C\uDDF0\uD83C\uDDF7","Czech Republic":"\uD83C\uDDE8\uD83C\uDDFF","Canada":"\uD83C\uDDE8\uD83C\uDDE6","Bosnia & Herzegovina":"\uD83C\uDDE7\uD83C\uDDE6","Qatar":"\uD83C\uDDF6\uD83C\uDDE6","Switzerland":"\uD83C\uDDE8\uD83C\uDDED","Brazil":"\uD83C\uDDE7\uD83C\uDDF7","Morocco":"\uD83C\uDDF2\uD83C\uDDE6","Haiti":"\uD83C\uDDED\uD83C\uDDF9","Scotland":"\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F","USA":"\uD83C\uDDFA\uD83C\uDDF8","Paraguay":"\uD83C\uDDF5\uD83C\uDDFE","Australia":"\uD83C\uDDE6\uD83C\uDDFA","Turkey":"\uD83C\uDDF9\uD83C\uDDF7","Germany":"\uD83C\uDDE9\uD83C\uDDEA","Cura\u00e7ao":"\uD83C\uDDE8\uD83C\uDDFC","Ivory Coast":"\uD83C\uDDE8\uD83C\uDDEE","Ecuador":"\uD83C\uDDEA\uD83C\uDDE8","Netherlands":"\uD83C\uDDF3\uD83C\uDDF1","Japan":"\uD83C\uDDEF\uD83C\uDDF5","Sweden":"\uD83C\uDDF8\uD83C\uDDEA","Tunisia":"\uD83C\uDDF9\uD83C\uDDF3","Belgium":"\uD83C\uDDE7\uD83C\uDDEA","Egypt":"\uD83C\uDDEA\uD83C\uDDEC","Iran":"\uD83C\uDDEE\uD83C\uDDF7","New Zealand":"\uD83C\uDDF3\uD83C\uDDFF","Spain":"\uD83C\uDDEA\uD83C\uDDF8","Cape Verde":"\uD83C\uDDE8\uD83C\uDDFB","Saudi Arabia":"\uD83C\uDDF8\uD83C\uDDE6","Uruguay":"\uD83C\uDDFA\uD83C\uDDFE","France":"\uD83C\uDDEB\uD83C\uDDF7","Senegal":"\uD83C\uDDF8\uD83C\uDDF3","Iraq":"\uD83C\uDDEE\uD83C\uDDF6","Norway":"\uD83C\uDDF3\uD83C\uDDF4","Argentina":"\uD83C\uDDE6\uD83C\uDDF7","Algeria":"\uD83C\uDDE9\uD83C\uDDFF","Austria":"\uD83C\uDDE6\uD83C\uDDF9","Jordan":"\uD83C\uDDEF\uD83C\uDDF4","Portugal":"\uD83C\uDDF5\uD83C\uDDF9","DR Congo":"\uD83C\uDDE8\uD83C\uDDE9","Uzbekistan":"\uD83C\uDDFA\uD83C\uDDFF","Colombia":"\uD83C\uDDE8\uD83C\uDDF4","England":"\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F","Croatia":"\uD83C\uDDED\uD83C\uDDF7","Ghana":"\uD83C\uDDEC\uD83C\uDDED","Panama":"\uD83C\uDDF5\uD83C\uDDE6"};
+const fl = n => FLAGS[n] || n.slice(0,2);
 
-const C = {
-  bg:"#0a0f1e",surface:"#111827",card:"#1a2235",border:"#1f2f4a",
-  gold:"#c9a84c",goldL:"#e8c97a",green:"#22c55e",red:"#ef4444",
-  blue:"#3b82f6",muted:"#6b7280",white:"#ffffff",col:"#FCD116",
-};
+const C = {bg:"#0a0f1e",surface:"#111827",card:"#1a2235",border:"#1f2f4a",gold:"#c9a84c",goldL:"#e8c97a",green:"#22c55e",red:"#ef4444",blue:"#3b82f6",muted:"#6b7280",white:"#ffffff",col:"#FCD116"};
 
-function parseUTC(dateStr, timeStr="12:00 UTC-5") {
+function parseUTC(dateStr, timeStr) {
+  // Converts a match local time (e.g. "19:30 UTC-4") to a UTC Date object
+  timeStr = timeStr || "12:00 UTC-5";
   try {
-    const [hhmm, utcPart] = timeStr.split(" ");
-    const [h,m] = hhmm.split(":").map(Number);
-    const offset = parseInt(utcPart.replace("UTC",""),10);
-    const d = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`);
-    d.setHours(d.getHours()-offset);
+    var parts = timeStr.split(" ");
+    var hhmm = parts[0], utcPart = parts[1];
+    var hm = hhmm.split(":"); var hh = parseInt(hm[0]); var mm = parseInt(hm[1]);
+    var offset = parseInt(utcPart.replace("UTC",""), 10); // e.g. -4 or -7
+    // Build UTC timestamp directly: local time minus offset = UTC
+    // e.g. 19:30 UTC-4 means UTC = 19:30 - (-4) = 23:30 UTC
+    var utcHH = hh - offset; // subtract offset to get UTC hour
+    // Handle day overflow
+    var d = new Date(dateStr + "T00:00:00Z");
+    d.setUTCHours(utcHH, mm, 0, 0);
     return d;
-  } catch { return new Date(dateStr); }
+  } catch(e) { return new Date(dateStr + "T00:00:00Z"); }
 }
-const fmtDate = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-const fmtTime = d => d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
-function mStatus(m,now) {
+function fmtDate(d) { return d.toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"America/New_York"}); }
+function fmtTime(d) { return d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/New_York"}); }
+function mStatus(m, now) {
   if (m.score) return "done";
-  const dt = parseUTC(m.date,m.time);
-  const mins=(now-dt)/60000;
-  if (mins>=0&&mins<110) return "live";
-  return dt>now ? "upcoming" : "done";
+  var dt = parseUTC(m.date, m.time);
+  var mins = (now - dt) / 60000;
+  if (mins >= 0 && mins < 110) return "live";
+  return dt > now ? "upcoming" : "done";
 }
 
 function buildStandings() {
-  const g={};
-  RAW_MATCHES.filter(m=>m.group).forEach(m=>{
-    if(!g[m.group])g[m.group]={};
-    [m.team1,m.team2].forEach(t=>{if(!g[m.group][t])g[m.group][t]={team:t,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};});
-    if(m.score){
-      const[s1,s2]=m.score.ft;
-      g[m.group][m.team1].p++;g[m.group][m.team2].p++;
-      g[m.group][m.team1].gf+=s1;g[m.group][m.team1].ga+=s2;
-      g[m.group][m.team2].gf+=s2;g[m.group][m.team2].ga+=s1;
+  var g = {};
+  RAW_MATCHES.filter(function(m){return m.group;}).forEach(function(m) {
+    if (!g[m.group]) g[m.group] = {};
+    [m.team1, m.team2].forEach(function(t) { if (!g[m.group][t]) g[m.group][t] = {team:t,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; });
+    if (m.score) {
+      var s1=m.score.ft[0], s2=m.score.ft[1];
+      g[m.group][m.team1].p++; g[m.group][m.team2].p++;
+      g[m.group][m.team1].gf+=s1; g[m.group][m.team1].ga+=s2;
+      g[m.group][m.team2].gf+=s2; g[m.group][m.team2].ga+=s1;
       if(s1>s2){g[m.group][m.team1].w++;g[m.group][m.team1].pts+=3;g[m.group][m.team2].l++;}
       else if(s2>s1){g[m.group][m.team2].w++;g[m.group][m.team2].pts+=3;g[m.group][m.team1].l++;}
       else{g[m.group][m.team1].d++;g[m.group][m.team2].d++;g[m.group][m.team1].pts++;g[m.group][m.team2].pts++;}
     }
   });
-  return Object.entries(g).map(([grp,teams])=>({
-    group:grp,
-    standings:Object.values(teams).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf),
-  })).sort((a,b)=>a.group.localeCompare(b.group));
+  return Object.entries(g).map(function([grp,teams]){
+    return {group:grp, standings:Object.values(teams).sort(function(a,b){return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf;})};
+  }).sort(function(a,b){return a.group.localeCompare(b.group);});
 }
-const STANDINGS=buildStandings();
+var STANDINGS = buildStandings();
 
-function Btn({active,onClick,children,style={}}) {
-  return <button onClick={onClick} style={{padding:"5px 14px",borderRadius:20,border:`1px solid ${active?C.gold:C.border}`,background:active?`${C.gold}22`:"transparent",color:active?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",...style}}>{children}</button>;
-}
+// ── COMPONENTS ────────────────────────────────────────────────────────────────
 
-function MatchCard({m,now}) {
-  const st=mStatus(m,now);
-  const isCol=m.team1==="Colombia"||m.team2==="Colombia";
-  const isLive=st==="live";
-  const dt=parseUTC(m.date,m.time);
-  return (
-    <div style={{background:isCol&&!isLive?"#1a1800":isLive?"#1a1218":C.card,border:`1px solid ${isLive?"#7f1d1d":isCol?C.col+"55":C.border}`,borderRadius:12,marginBottom:10,padding:"13px 15px"}}>
-      {isCol&&<div style={{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}>🇨🇴 Colombia</div>}
-      {isLive&&<div style={{display:"inline-flex",alignItems:"center",gap:5,background:"#7f1d1d",color:"#fca5a5",fontSize:10,fontWeight:700,letterSpacing:"0.1em",padding:"2px 8px",borderRadius:20,marginBottom:8}}><div style={{width:6,height:6,borderRadius:"50%",background:C.red,animation:"pulse 1.5s infinite"}}/>LIVE</div>}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-        <div style={{flex:1,display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontSize:20}}>{fl(m.team1)}</span>
-          <span style={{fontSize:13,fontWeight:600,color:C.white}}>{m.team1}</span>
-        </div>
-        {m.score?<div style={{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:17,fontWeight:800,color:C.white,minWidth:64,textAlign:"center"}}>{m.score.ft[0]} – {m.score.ft[1]}</div>:<div style={{background:C.border,borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:C.muted,minWidth:36,textAlign:"center"}}>VS</div>}
-        <div style={{flex:1,display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}}>
-          <span style={{fontSize:13,fontWeight:600,color:C.white,textAlign:"right"}}>{m.team2}</span>
-          <span style={{fontSize:20}}>{fl(m.team2)}</span>
-        </div>
-      </div>
-      <div style={{display:"flex",gap:10,marginTop:9,fontSize:11,color:C.muted,flexWrap:"wrap"}}>
-        {m.group&&<span style={{background:C.border,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700,color:C.goldL}}>{m.group}</span>}
-        <span>📍 {m.ground}</span>
-        <span>⏰ {fmtTime(dt)}</span>
-      </div>
-    </div>
+function MatchCard({m, now}) {
+  var st = mStatus(m, now);
+  var isCol = m.team1==="Colombia" || m.team2==="Colombia";
+  var isLive = st==="live";
+  var dt = parseUTC(m.date, m.time);
+  return h("div", {style:{background:isCol&&!isLive?"#1a1800":isLive?"#1a1218":C.card,border:"1px solid "+(isLive?"#7f1d1d":isCol?C.col+"55":C.border),borderRadius:12,marginBottom:10,padding:"13px 15px"}},
+    isCol && h("div",{style:{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}},"\uD83C\uDDE8\uD83C\uDDF4 Colombia"),
+    isLive && h("div",{style:{display:"inline-flex",alignItems:"center",gap:5,background:"#7f1d1d",color:"#fca5a5",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,marginBottom:8}},
+      h("div",{style:{width:6,height:6,borderRadius:"50%",background:C.red,animation:"pulse 1.5s infinite"}}), "LIVE"),
+    h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
+      h("div",{style:{flex:1,display:"flex",alignItems:"center",gap:6}},
+        h("span",{style:{fontSize:20}},fl(m.team1)),
+        h("span",{style:{fontSize:13,fontWeight:600,color:C.white}},m.team1)
+      ),
+      m.score
+        ? h("div",{style:{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:17,fontWeight:800,color:C.white,minWidth:64,textAlign:"center"}}, m.score.ft[0]+" \u2013 "+m.score.ft[1])
+        : h("div",{style:{background:C.border,borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:C.muted,minWidth:36,textAlign:"center"}},"VS"),
+      h("div",{style:{flex:1,display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}},
+        h("span",{style:{fontSize:13,fontWeight:600,color:C.white,textAlign:"right"}},m.team2),
+        h("span",{style:{fontSize:20}},fl(m.team2))
+      )
+    ),
+    h("div",{style:{display:"flex",gap:10,marginTop:9,fontSize:11,color:C.muted,flexWrap:"wrap"}},
+      m.group && h("span",{style:{background:C.border,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700,color:C.goldL}},m.group),
+      h("span",null,"\uD83D\uDCCD "+m.ground),
+      h("span",null,"\u23F0 "+fmtTime(dt))
+    )
   );
 }
 
 function ScheduleTab({now}) {
-  const [filter,setFilter]=useState("upcoming");
-  const grp=RAW_MATCHES.filter(m=>m.group);
-  const ko=RAW_MATCHES.filter(m=>!m.group);
-  const live=grp.filter(m=>mStatus(m,now)==="live");
-  const upcoming=grp.filter(m=>mStatus(m,now)==="upcoming");
-  const done=grp.filter(m=>mStatus(m,now)==="done");
-  const byDate=arr=>{const map={};arr.forEach(m=>{const d=fmtDate(parseUTC(m.date,m.time));if(!map[d])map[d]=[];map[d].push(m);});return Object.entries(map);};
-  return (
-    <div style={{padding:"14px 14px 0"}}>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,marginTop:6}}>
-        {[{v:"live",l:"🔴 Live"},{v:"upcoming",l:"Next"},{v:"done",l:"Results"},{v:"ko",l:"🏆 Knockout"}].map(o=>(
-          <Btn key={o.v} active={filter===o.v} onClick={()=>setFilter(o.v)}>{o.l}</Btn>
-        ))}
-      </div>
-      {filter==="live"&&(live.length>0?live.map((m,i)=><MatchCard key={i} m={m} now={now}/>):<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}}>No matches live right now.</div>)}
-      {filter==="upcoming"&&byDate(upcoming).map(([d,arr])=><div key={d}><div style={{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}}>{d}</div>{arr.map((m,i)=><MatchCard key={i} m={m} now={now}/>)}</div>)}
-      {filter==="done"&&byDate(done).reverse().map(([d,arr])=><div key={d}><div style={{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}}>{d}</div>{arr.map((m,i)=><MatchCard key={i} m={m} now={now}/>)}</div>)}
-      {filter==="ko"&&ko.map((m,i)=>(
-        <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,marginBottom:10,padding:"13px 15px"}}>
-          <div style={{fontSize:10,color:C.gold,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>{m.round}</div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-            <span style={{fontSize:13,fontWeight:600,color:C.white,flex:1}}>{fl(m.team1)} {m.team1}</span>
-            {m.score?<div style={{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:15,fontWeight:800,color:C.white}}>{m.score.ft[0]}–{m.score.ft[1]}</div>:<div style={{background:C.border,borderRadius:8,padding:"3px 10px",fontSize:11,color:C.muted}}>VS</div>}
-            <span style={{fontSize:13,fontWeight:600,color:C.white,flex:1,textAlign:"right"}}>{m.team2} {fl(m.team2)}</span>
-          </div>
-          <div style={{fontSize:11,color:C.muted,marginTop:8}}>📅 {fmtDate(parseUTC(m.date,m.time))} · 📍 {m.ground}</div>
-        </div>
-      ))}
-    </div>
+  var _s = useState("upcoming"); var filter=_s[0]; var setFilter=_s[1];
+  var grp = RAW_MATCHES.filter(function(m){return m.group;});
+  var ko  = RAW_MATCHES.filter(function(m){return !m.group;});
+  var live     = grp.filter(function(m){return mStatus(m,now)==="live";});
+  var upcoming = grp.filter(function(m){return mStatus(m,now)==="upcoming";});
+  var done     = grp.filter(function(m){return mStatus(m,now)==="done";});
+  function byDate(arr) {
+    var map={};
+    arr.forEach(function(m){var d=fmtDate(parseUTC(m.date,m.time));if(!map[d])map[d]=[];map[d].push(m);});
+    return Object.entries(map);
+  }
+  var filters = [{v:"live",l:"\uD83D\uDD34 Live"},{v:"upcoming",l:"Next"},{v:"done",l:"Results"},{v:"ko",l:"\uD83C\uDFC6 Knockout"}];
+  return h("div",{style:{padding:"14px 14px 0"}},
+    h("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,marginTop:6}},
+      filters.map(function(o){return h("button",{key:o.v,onClick:function(){setFilter(o.v);},style:{padding:"5px 14px",borderRadius:20,border:"1px solid "+(filter===o.v?C.gold:C.border),background:filter===o.v?C.gold+"22":"transparent",color:filter===o.v?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},o.l);})
+    ),
+    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},"No matches live right now.")),
+    filter==="upcoming" && byDate(upcoming).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now});}));}),
+    filter==="done" && byDate(done).reverse().map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now});}));}),
+    filter==="ko" && ko.map(function(m,i){return h("div",{key:i,style:{background:C.card,border:"1px solid "+C.border,borderRadius:12,marginBottom:10,padding:"13px 15px"}},
+      h("div",{style:{fontSize:10,color:C.gold,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}},m.round),
+      h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
+        h("span",{style:{fontSize:13,fontWeight:600,color:C.white,flex:1}},fl(m.team1)+" "+m.team1),
+        m.score?h("div",{style:{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:15,fontWeight:800,color:C.white}},m.score.ft[0]+"-"+m.score.ft[1]):h("div",{style:{background:C.border,borderRadius:8,padding:"3px 10px",fontSize:11,color:C.muted}},"VS"),
+        h("span",{style:{fontSize:13,fontWeight:600,color:C.white,flex:1,textAlign:"right"}},m.team2+" "+fl(m.team2))
+      ),
+      h("div",{style:{fontSize:11,color:C.muted,marginTop:8}},"\uD83D\uDCC5 "+fmtDate(parseUTC(m.date,m.time))+" \u00B7 \uD83D\uDCCD "+m.ground)
+    );})
   );
 }
 
 function StandingsTab() {
-  const [active,setActive]=useState("Group K");
-  const [page,setPage]=useState(Math.floor(STANDINGS.findIndex(g=>g.group==="Group K")/6));
-  const PER=6,pages=Math.ceil(STANDINGS.length/PER);
-  const visible=STANDINGS.slice(page*PER,page*PER+PER);
-  const current=STANDINGS.find(g=>g.group===active);
-  return (
-    <div style={{padding:"14px 14px 0"}}>
-      <div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:6,marginBottom:4}}>
-        {visible.map(g=>{const hasCol=g.standings.some(t=>t.team==="Colombia"),isAct=active===g.group;return(
-          <button key={g.group} onClick={()=>setActive(g.group)} style={{flex:"none",minWidth:44,padding:"6px 0",background:isAct?C.gold:"transparent",border:`1px solid ${isAct?C.gold:hasCol?C.col:C.border}`,color:isAct?"#000":hasCol?C.col:C.muted,fontWeight:isAct?800:500,fontSize:12,cursor:"pointer",borderRadius:7,textAlign:"center"}}>{g.group.replace("Group ","")}</button>
-        );})}
-      </div>
-      {pages>1&&<div style={{display:"flex",gap:8,marginBottom:10}}><button onClick={()=>setPage(p=>Math.max(0,p-1))} disabled={page===0} style={{padding:"3px 12px",borderRadius:20,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:12,cursor:"pointer",opacity:page===0?0.3:1}}>◀</button><button onClick={()=>setPage(p=>Math.min(pages-1,p+1))} disabled={page===pages-1} style={{padding:"3px 12px",borderRadius:20,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:12,cursor:"pointer",opacity:page===pages-1?0.3:1}}>▶</button></div>}
-      {current&&(
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden",marginBottom:10}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead><tr><th style={{color:C.muted,fontWeight:600,fontSize:10,textTransform:"uppercase",padding:"8px 10px",textAlign:"left",borderBottom:`1px solid ${C.border}`,letterSpacing:"0.08em"}}>Team</th>{["P","W","D","L","GD","Pts"].map(h=><th key={h} style={{color:C.muted,fontWeight:600,fontSize:10,textTransform:"uppercase",padding:"8px 6px",textAlign:"center",borderBottom:`1px solid ${C.border}`,letterSpacing:"0.08em"}}>{h}</th>)}</tr></thead>
-            <tbody>{current.standings.map((t,i)=>{const q=i<2,isCol=t.team==="Colombia",gd=t.gf-t.ga;return(
-              <tr key={t.team} style={isCol?{background:"#1a1800"}:{}}>
-                <td style={{padding:"9px 10px",borderBottom:`1px solid ${C.border}20`}}><div style={{display:"flex",alignItems:"center",gap:7}}><span style={{width:3,height:16,borderRadius:2,background:q?C.green:"transparent",display:"inline-block",flexShrink:0}}/><span style={{fontSize:18}}>{fl(t.team)}</span><span style={{fontSize:13,fontWeight:isCol?800:600,color:isCol?C.col:q?C.white:C.muted}}>{t.team}</span></div></td>
-                {[t.p,t.w,t.d,t.l,(gd>0?"+":"")+gd].map((v,j)=><td key={j} style={{padding:"9px 6px",textAlign:"center",color:q||isCol?C.white:C.muted,borderBottom:`1px solid ${C.border}20`,fontSize:12}}>{v}</td>)}
-                <td style={{padding:"9px 6px",textAlign:"center",fontWeight:800,fontSize:13,color:t.pts>=4?C.green:t.pts>=2?C.goldL:C.muted,borderBottom:`1px solid ${C.border}20`}}>{t.pts}</td>
-              </tr>
-            );})}</tbody>
-          </table>
-        </div>
-      )}
-      <div style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:C.muted}}><span style={{width:3,height:14,background:C.green,borderRadius:2,display:"inline-block"}}/>Top 2 advance · Best 8 third-place teams also qualify</div>
-    </div>
-  );
-}
-
-function ForecastTab({now}) {
-  const upcoming=RAW_MATCHES.filter(m=>m.group&&mStatus(m,now)==="upcoming").slice(0,5);
-  const [preds,setPreds]=useState({});
-  const [loading,setLoading]=useState({});
-
-  const getPred=useCallback(async(m)=>{
-    const key=`${m.team1}|${m.team2}`;
-    if(preds[key]||loading[key])return;
-    setLoading(l=>({...l,[key]:true}));
-    try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:`You are a 2026 World Cup analyst. Predict: ${m.team1} vs ${m.team2} (${m.group}, ${m.ground}). Respond ONLY valid JSON no markdown: {"homeWin":<0-100>,"draw":<0-100>,"awayWin":<0-100>,"score":"e.g. 2-1","analysis":"2-3 sentences","confidence":"High" or "Medium" or "Low"}`}]})});
-      const data=await res.json();
-      const text=data.content?.find(c=>c.type==="text")?.text||"{}";
-      setPreds(p=>({...p,[key]:JSON.parse(text.replace(/```json|```/g,"").trim())}));
-    }catch{setPreds(p=>({...p,[key]:{error:true}}));}
-    finally{setLoading(l=>({...l,[key]:false}));}
-  },[preds,loading]);
-
-  useEffect(()=>{upcoming.forEach(getPred);},[upcoming.length]);
-
-  const cColor=c=>c==="High"?C.green:c==="Medium"?"#fbbf24":"#818cf8";
-  const cBg=c=>c==="High"?"#14532d":c==="Medium"?"#713f12":"#1e1b4b";
-
-  return(
-    <div style={{padding:"14px 14px 0"}}>
-      <div style={{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}>AI-powered match previews for upcoming matches.</div>
-      {upcoming.map(m=>{
-        const key=`${m.team1}|${m.team2}`;
-        const p=preds[key];
-        const isCol=m.team1==="Colombia"||m.team2==="Colombia";
-        const dt=parseUTC(m.date,m.time);
-        return(
-          <div key={key} style={{background:isCol?"#1a1800":C.card,border:`1px solid ${isCol?C.col+"55":C.border}`,borderRadius:12,marginBottom:12,padding:"15px"}}>
-            {isCol&&<div style={{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>🇨🇴 Colombia</div>}
-            <div style={{textAlign:"center",marginBottom:12}}>
-              <div style={{fontSize:14,fontWeight:700,color:C.white}}>{fl(m.team1)} {m.team1}  vs  {m.team2} {fl(m.team2)}</div>
-              <div style={{fontSize:11,color:C.muted,marginTop:3}}>{fmtDate(dt)} · {fmtTime(dt)} · {m.ground}</div>
-            </div>
-            {loading[key]&&<div style={{textAlign:"center",color:C.muted,fontSize:12,padding:"10px 0"}}>Generating prediction...</div>}
-            {p&&!p.error&&(
-              <>
-                <div style={{display:"flex",borderRadius:5,overflow:"hidden",height:7,marginBottom:5,gap:2}}>
-                  <div style={{flex:p.homeWin||0,background:C.blue,borderRadius:"4px 0 0 4px"}}/>
-                  <div style={{flex:p.draw||0,background:C.muted}}/>
-                  <div style={{flex:p.awayWin||0,background:C.red,borderRadius:"0 4px 4px 0"}}/>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:12}}>
-                  <span style={{color:C.blue,fontWeight:700}}>{p.homeWin}% {m.team1}</span>
-                  <span style={{color:C.muted}}>{p.draw}% Draw</span>
-                  <span style={{color:C.red,fontWeight:700}}>{p.awayWin}% {m.team2}</span>
-                </div>
-                <div style={{background:"#0a0f1e",borderRadius:8,padding:"7px 12px",textAlign:"center",marginBottom:10}}>
-                  <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:2}}>Predicted Score</div>
-                  <div style={{fontSize:16,fontWeight:800,color:C.goldL}}>{m.team1} {p.score} {m.team2}</div>
-                </div>
-                <p style={{fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:8}}>{p.analysis}</p>
-                <div style={{fontSize:11,color:C.muted}}>Confidence <span style={{display:"inline-block",padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:cBg(p.confidence),color:cColor(p.confidence),marginLeft:6}}>{p.confidence}</span></div>
-              </>
-            )}
-            {p?.error&&<div style={{fontSize:12,color:C.muted,textAlign:"center"}}>Prediction not available.</div>}
-          </div>
-        );
-      })}
-      {upcoming.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}}>No upcoming matches to predict.</div>}
-    </div>
+  var _a=useState("Group K"); var active=_a[0]; var setActive=_a[1];
+  var startPage=Math.floor(STANDINGS.findIndex(function(g){return g.group==="Group K";})/6);
+  var _p=useState(startPage); var page=_p[0]; var setPage=_p[1];
+  var PER=6, pages=Math.ceil(STANDINGS.length/PER);
+  var visible=STANDINGS.slice(page*PER,page*PER+PER);
+  var current=STANDINGS.find(function(g){return g.group===active;});
+  return h("div",{style:{padding:"14px 14px 0"}},
+    h("div",{style:{display:"flex",gap:3,flexWrap:"wrap",marginTop:6,marginBottom:4}},
+      visible.map(function(g){var hasCol=g.standings.some(function(t){return t.team==="Colombia";}),isAct=active===g.group;
+        return h("button",{key:g.group,onClick:function(){setActive(g.group);},style:{flex:"none",minWidth:44,padding:"6px 0",background:isAct?C.gold:"transparent",border:"1px solid "+(isAct?C.gold:hasCol?C.col:C.border),color:isAct?"#000":hasCol?C.col:C.muted,fontWeight:isAct?800:500,fontSize:12,cursor:"pointer",borderRadius:7,textAlign:"center"}},g.group.replace("Group ",""));})
+    ),
+    pages>1 && h("div",{style:{display:"flex",gap:8,marginBottom:10}},
+      h("button",{onClick:function(){setPage(function(p){return Math.max(0,p-1);});},disabled:page===0,style:{padding:"3px 12px",borderRadius:20,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontSize:12,cursor:"pointer",opacity:page===0?0.3:1}},"\u25C4"),
+      h("button",{onClick:function(){setPage(function(p){return Math.min(pages-1,p+1);});},disabled:page===pages-1,style:{padding:"3px 12px",borderRadius:20,border:"1px solid "+C.border,background:"transparent",color:C.muted,fontSize:12,cursor:"pointer",opacity:page===pages-1?0.3:1}},"\u25BA")
+    ),
+    current && h("div",{style:{background:C.card,border:"1px solid "+C.border,borderRadius:12,overflow:"hidden",marginBottom:10}},
+      h("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:12}},
+        h("thead",null,h("tr",null,
+          h("th",{style:{color:C.muted,fontWeight:600,fontSize:10,textTransform:"uppercase",padding:"8px 10px",textAlign:"left",borderBottom:"1px solid "+C.border}},"Team"),
+          ["P","W","D","L","GD","Pts"].map(function(hd){return h("th",{key:hd,style:{color:C.muted,fontWeight:600,fontSize:10,textTransform:"uppercase",padding:"8px 6px",textAlign:"center",borderBottom:"1px solid "+C.border}},hd);})
+        )),
+        h("tbody",null,current.standings.map(function(t,i){
+          var q=i<2,isCol=t.team==="Colombia",gd=t.gf-t.ga;
+          return h("tr",{key:t.team,style:isCol?{background:"#1a1800"}:{}},
+            h("td",{style:{padding:"9px 10px",borderBottom:"1px solid "+C.border+"20"}},
+              h("div",{style:{display:"flex",alignItems:"center",gap:7}},
+                h("span",{style:{width:3,height:16,borderRadius:2,background:q?C.green:"transparent",display:"inline-block",flexShrink:0}}),
+                h("span",{style:{fontSize:18}},fl(t.team)),
+                h("span",{style:{fontSize:13,fontWeight:isCol?800:600,color:isCol?C.col:q?C.white:C.muted}},t.team)
+              )
+            ),
+            [t.p,t.w,t.d,t.l,(gd>0?"+":"")+gd].map(function(v,j){return h("td",{key:j,style:{padding:"9px 6px",textAlign:"center",color:q||isCol?C.white:C.muted,borderBottom:"1px solid "+C.border+"20",fontSize:12}},v);}),
+            h("td",{style:{padding:"9px 6px",textAlign:"center",fontWeight:800,fontSize:13,color:t.pts>=4?C.green:t.pts>=2?C.goldL:C.muted,borderBottom:"1px solid "+C.border+"20"}},t.pts)
+          );
+        }))
+      )
+    ),
+    h("div",{style:{display:"flex",alignItems:"center",gap:8,fontSize:11,color:C.muted}},
+      h("span",{style:{width:3,height:14,background:C.green,borderRadius:2,display:"inline-block"}}),
+      "Top 2 advance \u00B7 Best 8 third-place teams also qualify"
+    )
   );
 }
 
 function BracketTab({now}) {
-  const ko=RAW_MATCHES.filter(m=>!m.group);
-  const rounds=[...new Set(ko.map(m=>m.round))];
-  const [active,setActive]=useState(rounds[0]);
-  const current=ko.filter(m=>m.round===active);
-  const lbl=r=>r.replace("Round of ","R").replace("Quarter-final","QF").replace("Semi-final","SF").replace("Match for third place","3rd");
-  return(
-    <div style={{padding:"14px 14px 0"}}>
-      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14,marginTop:6}}>
-        {rounds.map(r=><Btn key={r} active={active===r} onClick={()=>setActive(r)}>{lbl(r)}</Btn>)}
-      </div>
-      {current.map((m,i)=>{
-        const isCol=m.team1==="Colombia"||m.team2==="Colombia";
-        const dt=parseUTC(m.date,m.time);
-        return(
-          <div key={i} style={{background:isCol?"#1a1800":C.card,border:`1px solid ${isCol?C.col+"55":C.border}`,borderRadius:12,marginBottom:10,padding:"13px 15px"}}>
-            {isCol&&<div style={{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}>🇨🇴 Colombia</div>}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-              <span style={{fontSize:13,fontWeight:600,color:C.white,flex:1}}>{fl(m.team1)} {m.team1}</span>
-              {m.score?<div style={{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:16,fontWeight:800,color:C.white}}>{m.score.ft[0]}–{m.score.ft[1]}</div>:<div style={{background:C.border,borderRadius:8,padding:"3px 10px",fontSize:11,color:C.muted}}>VS</div>}
-              <span style={{fontSize:13,fontWeight:600,color:C.white,flex:1,textAlign:"right"}}>{m.team2} {fl(m.team2)}</span>
-            </div>
-            <div style={{display:"flex",gap:12,marginTop:8,fontSize:11,color:C.muted}}>
-              <span>📅 {fmtDate(dt)}</span><span>⏰ {fmtTime(dt)}</span><span>📍 {m.ground}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+  var ko=RAW_MATCHES.filter(function(m){return !m.group;});
+  var rounds=[...new Set(ko.map(function(m){return m.round;}))];
+  var _a=useState(rounds[0]); var active=_a[0]; var setActive=_a[1];
+  var current=ko.filter(function(m){return m.round===active;});
+  function lbl(r){return r.replace("Round of ","R").replace("Quarter-final","QF").replace("Semi-final","SF").replace("Match for third place","3rd");}
+  return h("div",{style:{padding:"14px 14px 0"}},
+    h("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14,marginTop:6}},
+      rounds.map(function(r){return h("button",{key:r,onClick:function(){setActive(r);},style:{padding:"5px 12px",borderRadius:20,border:"1px solid "+(active===r?C.gold:C.border),background:active===r?C.gold+"22":"transparent",color:active===r?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},lbl(r));})
+    ),
+    current.map(function(m,i){
+      var isCol=m.team1==="Colombia"||m.team2==="Colombia";
+      var dt=parseUTC(m.date,m.time);
+      return h("div",{key:i,style:{background:isCol?"#1a1800":C.card,border:"1px solid "+(isCol?C.col+"55":C.border),borderRadius:12,marginBottom:10,padding:"13px 15px"}},
+        isCol&&h("div",{style:{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}},"\uD83C\uDDE8\uD83C\uDDF4 Colombia"),
+        h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
+          h("span",{style:{fontSize:13,fontWeight:600,color:C.white,flex:1}},fl(m.team1)+" "+m.team1),
+          m.score?h("div",{style:{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:16,fontWeight:800,color:C.white}},m.score.ft[0]+"-"+m.score.ft[1]):h("div",{style:{background:C.border,borderRadius:8,padding:"3px 10px",fontSize:11,color:C.muted}},"VS"),
+          h("span",{style:{fontSize:13,fontWeight:600,color:C.white,flex:1,textAlign:"right"}},m.team2+" "+fl(m.team2))
+        ),
+        h("div",{style:{display:"flex",gap:12,marginTop:8,fontSize:11,color:C.muted}},
+          h("span",null,"\uD83D\uDCC5 "+fmtDate(dt)),h("span",null,"\u23F0 "+fmtTime(dt)),h("span",null,"\uD83D\uDCCD "+m.ground)
+        )
+      );
+    })
   );
 }
 
-const TABS=[{id:"schedule",label:"Schedule",icon:"📅"},{id:"standings",label:"Standings",icon:"📊"},{id:"forecast",label:"Forecast",icon:"🔮"},{id:"bracket",label:"Bracket",icon:"🏆"}];
+var TABS=[{id:"schedule",label:"Schedule",icon:"\uD83D\uDCC5"},{id:"standings",label:"Standings",icon:"\uD83D\uDCCA"},{id:"bracket",label:"Bracket",icon:"\uD83C\uDFC6"}];
 
 function App() {
-  const [tab,setTab]=useState("schedule");
-  const [now,setNow]=useState(new Date());
-  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),60000);return()=>clearInterval(t);},[]);
-  return(
-    <div style={{background:C.bg,minHeight:"100vh",color:"#e5e7eb",maxWidth:430,margin:"0 auto",paddingBottom:80}}>
-      <div style={{background:"linear-gradient(160deg,#0d1b3e 0%,#0a0f1e 60%)",padding:"20px 20px 14px",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:10}}>
-        <div style={{fontSize:10,letterSpacing:"0.18em",color:C.gold,textTransform:"uppercase",fontWeight:600,marginBottom:2}}>FIFA World Cup</div>
-        <div style={{fontSize:21,fontWeight:800,color:C.white,letterSpacing:"-0.02em"}}>2026 · USA · MEX · CAN</div>
-        <div style={{fontSize:11,color:C.muted,marginTop:3}}>🇨🇴 Group K · Colombia · Real data</div>
-      </div>
-      {tab==="schedule"&&<ScheduleTab now={now}/>}
-      {tab==="standings"&&<StandingsTab/>}
-      {tab==="forecast"&&<ForecastTab now={now}/>}
-      {tab==="bracket"&&<BracketTab now={now}/>}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:20}}>
-        {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s"}}>
-            <span style={{fontSize:19,lineHeight:1}}>{t.icon}</span>{t.label}
-          </button>
-        ))}
-      </div>
-    </div>
+  var _t=useState("schedule"); var tab=_t[0]; var setTab=_t[1];
+  var _n=useState(new Date()); var now=_n[0]; var setNow=_n[1];
+  useEffect(function(){var t=setInterval(function(){setNow(new Date());},60000);return function(){clearInterval(t);};}, []);
+  return h("div",{style:{background:C.bg,minHeight:"100vh",color:"#e5e7eb",maxWidth:430,margin:"0 auto",paddingBottom:80}},
+    h("div",{style:{background:"linear-gradient(160deg,#0d1b3e 0%,#0a0f1e 60%)",padding:"20px 20px 14px",borderBottom:"1px solid "+C.border,position:"sticky",top:0,zIndex:10}},
+      h("div",{style:{fontSize:10,letterSpacing:"0.18em",color:C.gold,textTransform:"uppercase",fontWeight:600,marginBottom:2}},"FIFA World Cup"),
+      h("div",{style:{fontSize:21,fontWeight:800,color:C.white,letterSpacing:"-0.02em"}},"2026 \u00B7 USA \u00B7 MEX \u00B7 CAN"),
+      h("div",{style:{fontSize:11,color:C.muted,marginTop:3}},"\uD83C\uDDE8\uD83C\uDDF4 Group K \u00B7 Colombia \u00B7 Real data")
+    ),
+    tab==="schedule"  && h(ScheduleTab,{now:now}),
+    tab==="standings" && h(StandingsTab,null),
+    tab==="bracket"   && h(BracketTab,{now:now}),
+    h("div",{style:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:"1px solid "+C.border,display:"flex",zIndex:20}},
+      TABS.map(function(t){return h("button",{key:t.id,onClick:function(){setTab(t.id);},style:{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s"}},h("span",{style:{fontSize:19,lineHeight:1}},t.icon),t.label);})
+    )
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+var root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(h(App, null));
 </script>
 </body>
 </html>
