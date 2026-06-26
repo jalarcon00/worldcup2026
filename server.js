@@ -1,16 +1,42 @@
-{
-  "name": "worldcup2026",
-  "version": "1.0.0",
-  "description": "FIFA World Cup 2026 companion app",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^2.7.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+const express = require('express');
+const path = require('path');
+const fetch = require('node-fetch');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const API_KEY = process.env.API_FOOTBALL_KEY || '507600b79790d08f00128460268cc8f6';
+const API_BASE = 'https://v3.football.api-sports.io';
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/live', async (req, res) => {
+  try {
+    const r = await fetch(`${API_BASE}/fixtures?league=1&season=2026&live=all`, {
+      headers: { 'x-apisports-key': API_KEY }
+    });
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
-}
+});
+
+app.get('/api/fixture/:id', async (req, res) => {
+  try {
+    const r = await fetch(`${API_BASE}/fixtures?id=${req.params.id}`, {
+      headers: { 'x-apisports-key': API_KEY }
+    });
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`World Cup 2026 app running on port ${PORT}`);
+});
