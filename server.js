@@ -26,8 +26,19 @@ app.get('/api/live', async (req, res) => {
   }
 });
 
-// Today's fixtures
-app.get('/api/today', async (req, res) => {
+// All World Cup fixtures - for bracket and full standings
+app.get('/api/fixtures', async (req, res) => {
+  try {
+    const r = await fetch(`${API_BASE}/fixtures?league=1&season=2026`, {
+      headers: { 'x-apisports-key': API_KEY }
+    });
+    const data = await r.json();
+    res.set('Cache-Control', 'max-age=300'); // cache 5 minutes
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
   try {
     const today = new Date().toISOString().split('T')[0];
     const r = await fetch(`${API_BASE}/fixtures?league=1&season=2026&date=${today}`, {
