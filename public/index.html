@@ -1,4 +1,4 @@
-m<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -471,17 +471,14 @@ function ForecastTab({now, tx, liveData}) {
     });
   }
 
-  useEffect(function(){ upcoming.forEach(getPred); }, [upcoming.length]);
-
   var cColor=function(c){return c==="High"?C.green:c==="Medium"?"#fbbf24":"#818cf8";};
   var cBg=function(c){return c==="High"?"#14532d":c==="Medium"?"#713f12":"#1e1b4b";};
-
+  var btnLabel = tx.predictedScore==="Marcador Predicho" ? "Generar pronóstico" : "Generate Prediction";
+  var introText = tx.predictedScore==="Marcador Predicho" ? "Pronósticos con IA para los próximos partidos." : "AI-powered match previews for upcoming matches.";
+  var noUpcoming = tx.predictedScore==="Marcador Predicho" ? "No hay partidos próximos para predecir." : "No upcoming matches to predict.";
   return h("div",{style:{padding:"14px 14px 0"}},
-    h("div",{style:{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}},
-      lang==="es"?"Pronósticos con IA para los próximos partidos.":"AI-powered match previews for upcoming matches."
-    ),
-    upcoming.length===0 && h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},"No upcoming matches to predict."),
-    upcoming.map(function(m){
+    h("div",{style:{fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.6}}, introText),
+    upcoming.length===0 && h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}}, noUpcoming),
       var key=m.team1+"|"+m.team2;
       var p=preds[key];
       var isCol=m.team1==="Colombia"||m.team2==="Colombia";
@@ -493,7 +490,7 @@ function ForecastTab({now, tx, liveData}) {
           h("div",{style:{fontSize:11,color:C.muted,marginTop:3}},fmtDate(dt)+" \u00B7 "+fmtTime(dt)+" \u00B7 "+m.ground)
         ),
         loading[key]&&h("div",{style:{textAlign:"center",color:C.muted,fontSize:12,padding:"10px 0"}},"Generating prediction..."),
-        !loading[key]&&!p&&h("button",{onClick:function(){getPred(m);},style:{width:"100%",padding:"8px",background:C.gold+"22",border:"1px solid "+C.gold,borderRadius:8,color:C.gold,fontSize:12,fontWeight:600,cursor:"pointer"}},"Generate Prediction"),
+        !loading[key]&&!p&&h("button",{onClick:function(){getPred(m);},style:{width:"100%",padding:"8px",background:C.gold+"22",border:"1px solid "+C.gold,borderRadius:8,color:C.gold,fontSize:12,fontWeight:600,cursor:"pointer"}},btnLabel),
         p&&!p.error&&h("div",null,
           h("div",{style:{display:"flex",borderRadius:5,overflow:"hidden",height:7,marginBottom:5,gap:2}},
             h("div",{style:{flex:p.homeWin||0,background:C.blue,borderRadius:"4px 0 0 4px"}}),
