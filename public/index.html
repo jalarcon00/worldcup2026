@@ -25,21 +25,21 @@ const { useState, useEffect, useCallback, createElement: h } = React;
 
 const T = {
   en: {
-    eyebrow:"FIFA World Cup", title:"2026 路 USA 路 MEX 路 CAN", sub:"馃嚚馃嚧 Group K 路 Colombia 路 Real data",
-    live:"馃敶 Live", next:"Next", results:"Results", knockout:"馃弳 Knockout",
+    eyebrow:"FIFA World Cup", title:"2026 · USA · MEX · CAN", sub:"🇨🇴 Group K · Colombia · Real data",
+    live:"🔴 Live", next:"Next", results:"Results", knockout:"🏆 Knockout",
     noLive:"No matches live right now.",
     schedule:"Schedule", standings:"Standings", bracket:"Bracket",
-    team:"Team", qualify:"Top 2 advance 路 Best 8 third-place teams also qualify",
-    colombia:"馃嚚馃嚧 Colombia", vs:"VS",
+    team:"Team", qualify:"Top 2 advance · Best 8 third-place teams also qualify",
+    colombia:"🇨🇴 Colombia", vs:"VS",
     round32:"R32", round16:"R16", qf:"QF", sf:"SF", third:"3rd Place", final:"Final",
   },
   es: {
-    eyebrow:"Copa Mundial FIFA", title:"2026 路 USA 路 MEX 路 CAN", sub:"馃嚚馃嚧 Grupo K 路 Colombia 路 Datos reales",
-    live:"馃敶 En vivo", next:"Pr贸ximos", results:"Resultados", knockout:"馃弳 Eliminaci贸n",
+    eyebrow:"Copa Mundial FIFA", title:"2026 · USA · MEX · CAN", sub:"🇨🇴 Grupo K · Colombia · Datos reales",
+    live:"🔴 En vivo", next:"Próximos", results:"Resultados", knockout:"🏆 Eliminación",
     noLive:"No hay partidos en vivo ahora.",
     schedule:"Partidos", standings:"Tabla", bracket:"Llave",
-    team:"Equipo", qualify:"Top 2 avanzan 路 Los 8 mejores terceros tambi茅n clasifican",
-    colombia:"馃嚚馃嚧 Colombia", vs:"VS",
+    team:"Equipo", qualify:"Top 2 avanzan · Los 8 mejores terceros también clasifican",
+    colombia:"🇨🇴 Colombia", vs:"VS",
     round32:"R32", round16:"R16", qf:"CF", sf:"SF", third:"Tercer Lugar", final:"Final",
   }
 };
@@ -204,24 +204,112 @@ function buildStandings() {
 }
 var STANDINGS = buildStandings();
 
-// 鈹€鈹€ COMPONENTS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ── LIVE DATA HOOK ────────────────────────────────────────────────────────────
+// Polls /api/live every 60 seconds when there are live matches
+// Returns map of { fixtureId: { home, away, minute, status } }
+function useLiveScores(now) {
+  var _l = useState({}); var liveData=_l[0]; var setLiveData=_l[1];
+  var _n = useState(false); var notifGranted=_n[0]; var setNotifGranted=_n[1];
+  var prevScores = React.useRef({});
 
-function MatchCard({m, now, tx}) {
+  function requestNotif() {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then(function(p){ setNotifGranted(p==="granted"); });
+    } else if (Notification.permission === "granted") {
+      setNotifGranted(true);
+    }
+  }
+
+  function sendNotif(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(title, {body:body, icon:"/favicon.ico"});
+    }
+  }
+
+  function poll() {
+    fetch("/api/live").then(function(r){return r.json();}).then(function(data){
+      var fixtures = data.response || [];
+      var map = {};
+      fixtures.forEach(function(f) {
+        var id = f.fixture.id;
+        var home = f.goals.home !== null ? f.goals.home : 0;
+        var away = f.goals.away !== null ? f.goals.away : 0;
+        var minute = f.fixture.status.elapsed;
+        var status = f.fixture.status.short;
+        map[id] = {home:home, away:away, minute:minute, status:status,
+                   team1:f.teams.home.name, team2:f.teams.away.name};
+        // Check for new goals vs previous
+        var prev = prevScores.current[id];
+        if (prev) {
+          if (home > prev.home) {
+            sendNotif("⚽ GOAL! " + f.teams.home.name, f.teams.home.name+" "+home+" - "+away+" "+f.teams.away.name+" ("+minute+"')");
+          }
+          if (away > prev.away) {
+            sendNotif("⚽ GOAL! " + f.teams.away.name, f.teams.home.name+" "+home+" - "+away+" "+f.teams.away.name+" ("+minute+"')");
+          }
+        }
+      });
+      prevScores.current = map;
+      setLiveData(map);
+    }).catch(function(){});
+  }
+
+  useEffect(function(){
+    requestNotif();
+    poll();
+    var t = setInterval(poll, 60000);
+    return function(){ clearInterval(t); };
+  }, []);
+
+  return liveData;
+}
+
+// ── COMPONENTS ────────────────────────────────────────────────────────────────
+
+// Map our embedded match names to API fixture IDs (populated at runtime from /api/live)
+function findLiveFixture(m, liveData) {
+  var vals = Object.values(liveData);
+  return vals.find(function(f){
+    return (f.team1===m.team1 && f.team2===m.team2) ||
+           (f.team1===m.team2 && f.team2===m.team1);
+  });
+}
+
+function MatchCard({m, now, tx, liveData}) {
   var st = mStatus(m, now);
   var isCol = m.team1==="Colombia" || m.team2==="Colombia";
   var isLive = st==="live";
   var dt = parseUTC(m.date, m.time);
+
+  // Try to get real-time score from API
+  var apiData = liveData ? findLiveFixture(m, liveData) : null;
+  var displayScore = null;
+  var displayMinute = null;
+  var halfTime = false;
+  if (isLive && apiData) {
+    displayScore = apiData.home + " – " + apiData.away;
+    displayMinute = apiData.minute ? apiData.minute+"'" : null;
+    halfTime = apiData.status === "HT";
+  } else if (m.score) {
+    displayScore = m.score.ft[0] + " \u2013 " + m.score.ft[1];
+  }
+
   return h("div", {style:{background:isCol&&!isLive?"#1a1800":isLive?"#1a1218":C.card,border:"1px solid "+(isLive?"#7f1d1d":isCol?C.col+"55":C.border),borderRadius:12,marginBottom:10,padding:"13px 15px"}},
     isCol && h("div",{style:{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}},tx.colombia),
-    isLive && h("div",{style:{display:"inline-flex",alignItems:"center",gap:5,background:"#7f1d1d",color:"#fca5a5",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,marginBottom:8}},
-      h("div",{style:{width:6,height:6,borderRadius:"50%",background:C.red,animation:"pulse 1.5s infinite"}}), "LIVE"),
+    isLive && h("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
+      h("div",{style:{display:"inline-flex",alignItems:"center",gap:5,background:"#7f1d1d",color:"#fca5a5",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20}},
+        h("div",{style:{width:6,height:6,borderRadius:"50%",background:C.red,animation:"pulse 1.5s infinite"}}),
+        halfTime ? "HALF TIME" : "LIVE"
+      ),
+      displayMinute && !halfTime && h("span",{style:{fontSize:12,color:C.goldL,fontWeight:700}}, displayMinute)
+    ),
     h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
       h("div",{style:{flex:1,display:"flex",alignItems:"center",gap:6}},
         h("span",{style:{fontSize:20}},fl(m.team1)),
         h("span",{style:{fontSize:13,fontWeight:600,color:C.white}},m.team1)
       ),
-      m.score
-        ? h("div",{style:{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:17,fontWeight:800,color:C.white,minWidth:64,textAlign:"center"}}, m.score.ft[0]+" \u2013 "+m.score.ft[1])
+      displayScore
+        ? h("div",{style:{background:"#0a0f1e",borderRadius:8,padding:"4px 12px",fontSize:17,fontWeight:800,color:isLive?C.goldL:C.white,minWidth:64,textAlign:"center"}}, displayScore)
         : h("div",{style:{background:C.border,borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:C.muted,minWidth:36,textAlign:"center"}},tx.vs),
       h("div",{style:{flex:1,display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}},
         h("span",{style:{fontSize:13,fontWeight:600,color:C.white,textAlign:"right"}},m.team2),
@@ -236,7 +324,7 @@ function MatchCard({m, now, tx}) {
   );
 }
 
-function ScheduleTab({now, tx}) {
+function ScheduleTab({now, tx, liveData}) {
   var _s = useState("upcoming"); var filter=_s[0]; var setFilter=_s[1];
   var grp = RAW_MATCHES.filter(function(m){return m.group;});
   var ko  = RAW_MATCHES.filter(function(m){return !m.group;});
@@ -253,9 +341,9 @@ function ScheduleTab({now, tx}) {
     h("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,marginTop:6}},
       filters.map(function(o){return h("button",{key:o.v,onClick:function(){setFilter(o.v);},style:{padding:"5px 14px",borderRadius:20,border:"1px solid "+(filter===o.v?C.gold:C.border),background:filter===o.v?C.gold+"22":"transparent",color:filter===o.v?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},o.l);})
     ),
-    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},tx.noLive)),
-    filter==="upcoming" && byDate(upcoming).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx});}));}),
-    filter==="done" && byDate(done).reverse().map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx});}));}),
+    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},tx.noLive)),
+    filter==="upcoming" && byDate(upcoming).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData});}));}),
+    filter==="done" && byDate(done).reverse().map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData});}));}),
     filter==="ko" && ko.map(function(m,i){return h("div",{key:i,style:{background:C.card,border:"1px solid "+C.border,borderRadius:12,marginBottom:10,padding:"13px 15px"}},
       h("div",{style:{fontSize:10,color:C.gold,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}},m.round),
       h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
@@ -346,12 +434,14 @@ function App() {
   var _n=useState(new Date()); var now=_n[0]; var setNow=_n[1];
   var _l=useState("en"); var lang=_l[0]; var setLang=_l[1];
   var tx=T[lang];
+  var liveData = useLiveScores(now);
+  var liveCount = Object.keys(liveData).length;
   useEffect(function(){var t=setInterval(function(){setNow(new Date());},60000);return function(){clearInterval(t);};}, []);
 
   var TABS=[
-    {id:"schedule", label:tx.schedule, icon:"\uD83D\uDCC5"},
-    {id:"standings",label:tx.standings,icon:"\uD83D\uDCCA"},
-    {id:"bracket",  label:tx.bracket,  icon:"\uD83C\uDFC6"},
+    {id:"schedule", label:tx.schedule, icon:"\uD83D\uDCC5", dot: liveCount > 0},
+    {id:"standings",label:tx.standings,icon:"\uD83D\uDCCA", dot: false},
+    {id:"bracket",  label:tx.bracket,  icon:"\uD83C\uDFC6", dot: false},
   ];
 
   return h("div",{style:{background:C.bg,minHeight:"100vh",color:"#e5e7eb",maxWidth:430,margin:"0 auto",paddingBottom:80}},
@@ -378,11 +468,17 @@ function App() {
         )
       )
     ),
-    tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx}),
+    tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData}),
     tab==="standings" && h(StandingsTab,{tx:tx}),
     tab==="bracket"   && h(BracketTab,{now:now,tx:tx}),
     h("div",{style:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:"1px solid "+C.border,display:"flex",zIndex:20}},
-      TABS.map(function(t){return h("button",{key:t.id,onClick:function(){setTab(t.id);},style:{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s"}},h("span",{style:{fontSize:19,lineHeight:1}},t.icon),t.label);})
+      TABS.map(function(t){return h("button",{key:t.id,onClick:function(){setTab(t.id);},style:{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s",position:"relative"}},
+        h("div",{style:{position:"relative",display:"inline-block"}},
+          h("span",{style:{fontSize:19,lineHeight:1}},t.icon),
+          t.dot && h("div",{style:{position:"absolute",top:-2,right:-4,width:7,height:7,borderRadius:"50%",background:C.red,animation:"pulse 1.5s infinite"}})
+        ),
+        t.label
+      );})
     )
   );
 }
