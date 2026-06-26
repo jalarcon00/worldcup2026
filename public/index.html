@@ -175,11 +175,21 @@ function parseUTC(dateStr, timeStr) {
 }
 function fmtDate(d) { return d.toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"America/New_York"}); }
 function fmtTime(d) { return d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/New_York"}); }
-function mStatus(m, now) {
+function mStatus(m, now, liveData) {
+  // If API says it's live, trust that first
+  if (liveData) {
+    var apiMatch = findLiveFixture(m, liveData);
+    if (apiMatch) {
+      var s = apiMatch.status;
+      if (s==="1H"||s==="2H"||s==="HT"||s==="ET"||s==="BT"||s==="P"||s==="LIVE") return "live";
+      if (s==="FT"||s==="AET"||s==="PEN") return "done";
+    }
+  }
+  // Fall back to embedded score/time logic
   if (m.score) return "done";
   var dt = parseUTC(m.date, m.time);
   var mins = (now - dt) / 60000;
-  if (mins >= 0 && mins < 110) return "live";
+  if (mins >= 0 && mins < 120) return "live";
   return dt > now ? "upcoming" : "done";
 }
 
@@ -277,7 +287,7 @@ function findLiveFixture(m, liveData) {
 }
 
 function MatchCard({m, now, tx, liveData}) {
-  var st = mStatus(m, now);
+  var st = mStatus(m, now, liveData);
   var isCol = m.team1==="Colombia" || m.team2==="Colombia";
   var isLive = st==="live";
   var dt = parseUTC(m.date, m.time);
@@ -329,9 +339,9 @@ function ScheduleTab({now, tx, liveData}) {
   var _s = useState("upcoming"); var filter=_s[0]; var setFilter=_s[1];
   var grp = RAW_MATCHES.filter(function(m){return m.group;});
   var ko  = RAW_MATCHES.filter(function(m){return !m.group;});
-  var live     = grp.filter(function(m){return mStatus(m,now)==="live";});
-  var upcoming = grp.filter(function(m){return mStatus(m,now)==="upcoming";});
-  var done     = grp.filter(function(m){return mStatus(m,now)==="done";});
+  var live     = grp.filter(function(m){return mStatus(m,now,liveData)==="live";});
+  var upcoming = grp.filter(function(m){return mStatus(m,now,liveData)==="upcoming";});
+  var done     = grp.filter(function(m){return mStatus(m,now,liveData)==="done";});
   function byDate(arr) {
     var map={};
     arr.forEach(function(m){var d=fmtDate(parseUTC(m.date,m.time));if(!map[d])map[d]=[];map[d].push(m);});
