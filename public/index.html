@@ -64,10 +64,10 @@ const RAW_MATCHES = [
   {round:"Matchday 14",date:"2026-06-24",time:"18:00 UTC-4",team1:"Scotland",team2:"Brazil",score:{ft:[0,3]},group:"Group C",ground:"Miami (Miami Gardens)"},
   {round:"Matchday 14",date:"2026-06-24",time:"18:00 UTC-4",team1:"Morocco",team2:"Haiti",score:{ft:[4,2]},group:"Group C",ground:"Atlanta"},
   {round:"Matchday 2",date:"2026-06-12",time:"18:00 UTC-7",team1:"USA",team2:"Paraguay",score:{ft:[4,1]},group:"Group D",ground:"Los Angeles (Inglewood)"},
-  {round:"Matchday 3",date:"2026-06-13",time:"21:00 UTC-7",team1:"Australia",team2:"Turkey",score:{ft:[2,0]},group:"Group D",ground:"Vancouver"},
+  {round:"Matchday 3",date:"2026-06-13",time:"21:00 UTC-7",team1:"Australia",team2:"Türkiye",score:{ft:[2,0]},group:"Group D",ground:"Vancouver"},
   {round:"Matchday 9",date:"2026-06-19",time:"12:00 UTC-7",team1:"USA",team2:"Australia",score:{ft:[2,0]},group:"Group D",ground:"Seattle"},
-  {round:"Matchday 9",date:"2026-06-19",time:"20:00 UTC-7",team1:"Turkey",team2:"Paraguay",score:{ft:[0,1]},group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
-  {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Turkey",team2:"USA",group:"Group D",ground:"Los Angeles (Inglewood)"},
+  {round:"Matchday 9",date:"2026-06-19",time:"20:00 UTC-7",team1:"Türkiye",team2:"Paraguay",score:{ft:[0,1]},group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
+  {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Türkiye",team2:"USA",group:"Group D",ground:"Los Angeles (Inglewood)"},
   {round:"Matchday 15",date:"2026-06-25",time:"19:00 UTC-7",team1:"Paraguay",team2:"Australia",group:"Group D",ground:"San Francisco Bay Area (Santa Clara)"},
   {round:"Matchday 4",date:"2026-06-14",time:"12:00 UTC-5",team1:"Germany",team2:"Cura\u00e7ao",score:{ft:[7,1]},group:"Group E",ground:"Houston"},
   {round:"Matchday 4",date:"2026-06-14",time:"19:00 UTC-4",team1:"Ivory Coast",team2:"Ecuador",score:{ft:[1,0]},group:"Group E",ground:"Philadelphia"},
@@ -258,12 +258,21 @@ function useLiveScores(now) {
 
 // ── COMPONENTS ────────────────────────────────────────────────────────────────
 
-// Map our embedded match names to API fixture IDs (populated at runtime from /api/live)
+// Normalize team names for fuzzy matching (handles Türkiye vs Turkey, etc.)
+function normalizeName(n) {
+  return n.toLowerCase()
+    .replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/ş/g,"s").replace(/ı/g,"i").replace(/ğ/g,"g")
+    .replace(/[^a-z]/g,"");
+}
+
 function findLiveFixture(m, liveData) {
+  var t1 = normalizeName(m.team1);
+  var t2 = normalizeName(m.team2);
   var vals = Object.values(liveData);
-  return vals.find(function(f){
-    return (f.team1===m.team1 && f.team2===m.team2) ||
-           (f.team1===m.team2 && f.team2===m.team1);
+  return vals.find(function(f) {
+    var ft1 = normalizeName(f.team1);
+    var ft2 = normalizeName(f.team2);
+    return (ft1===t1 && ft2===t2) || (ft1===t2 && ft2===t1);
   });
 }
 
