@@ -91,14 +91,14 @@ const RAW_MATCHES = [
   {round:"Matchday 5",date:"2026-06-15",time:"18:00 UTC-4",team1:"Saudi Arabia",team2:"Uruguay",score:{ft:[1,1]},group:"Group H",ground:"Miami (Miami Gardens)"},
   {round:"Matchday 11",date:"2026-06-21",time:"12:00 UTC-4",team1:"Spain",team2:"Saudi Arabia",score:{ft:[4,0]},group:"Group H",ground:"Atlanta"},
   {round:"Matchday 11",date:"2026-06-21",time:"18:00 UTC-4",team1:"Uruguay",team2:"Cape Verde",score:{ft:[2,2]},group:"Group H",ground:"Miami (Miami Gardens)"},
-  {round:"Matchday 16",date:"2026-06-26",time:"19:00 UTC-5",team1:"Cape Verde",team2:"Saudi Arabia",group:"Group H",ground:"Houston"},
-  {round:"Matchday 16",date:"2026-06-26",time:"18:00 UTC-6",team1:"Uruguay",team2:"Spain",group:"Group H",ground:"Guadalajara (Zapopan)"},
+  {round:"Matchday 16",date:"2026-06-26",time:"19:00 UTC-5",team1:"Cape Verde",team2:"Saudi Arabia",score:{ft:[0,0]},group:"Group H",ground:"Houston"},
+  {round:"Matchday 16",date:"2026-06-26",time:"18:00 UTC-6",team1:"Uruguay",team2:"Spain",score:{ft:[0,1]},group:"Group H",ground:"Guadalajara (Zapopan)"},
   {round:"Matchday 6",date:"2026-06-16",time:"15:00 UTC-4",team1:"France",team2:"Senegal",score:{ft:[3,1]},group:"Group I",ground:"New York/New Jersey (East Rutherford)"},
   {round:"Matchday 6",date:"2026-06-16",time:"18:00 UTC-4",team1:"Iraq",team2:"Norway",score:{ft:[1,4]},group:"Group I",ground:"Boston (Foxborough)"},
   {round:"Matchday 12",date:"2026-06-22",time:"17:00 UTC-4",team1:"France",team2:"Iraq",score:{ft:[3,0]},group:"Group I",ground:"Philadelphia"},
   {round:"Matchday 12",date:"2026-06-22",time:"20:00 UTC-4",team1:"Norway",team2:"Senegal",score:{ft:[3,2]},group:"Group I",ground:"New York/New Jersey (East Rutherford)"},
-  {round:"Matchday 16",date:"2026-06-26",time:"15:00 UTC-4",team1:"Norway",team2:"France",group:"Group I",ground:"Boston (Foxborough)"},
-  {round:"Matchday 16",date:"2026-06-26",time:"15:00 UTC-4",team1:"Senegal",team2:"Iraq",group:"Group I",ground:"Toronto"},
+  {round:"Matchday 16",date:"2026-06-26",time:"15:00 UTC-4",team1:"Norway",team2:"France",score:{ft:[1,4]},group:"Group I",ground:"Boston (Foxborough)"},
+  {round:"Matchday 16",date:"2026-06-26",time:"15:00 UTC-4",team1:"Senegal",team2:"Iraq",score:{ft:[2,0]},group:"Group I",ground:"Toronto"},
   {round:"Matchday 6",date:"2026-06-16",time:"20:00 UTC-5",team1:"Argentina",team2:"Algeria",score:{ft:[3,0]},group:"Group J",ground:"Kansas City"},
   {round:"Matchday 6",date:"2026-06-16",time:"21:00 UTC-7",team1:"Austria",team2:"Jordan",score:{ft:[3,1]},group:"Group J",ground:"San Francisco Bay Area (Santa Clara)"},
   {round:"Matchday 12",date:"2026-06-22",time:"12:00 UTC-5",team1:"Argentina",team2:"Austria",score:{ft:[2,0]},group:"Group J",ground:"Dallas (Arlington)"},
@@ -220,7 +220,6 @@ var STANDINGS = buildStandings();
 function useLiveScores(now) {
   var _l = useState({}); var liveData=_l[0]; var setLiveData=_l[1];
   var _t = useState({}); var todayData=_t[0]; var setTodayData=_t[1];
-  var _a = useState({}); var allData=_a[0]; var setAllData=_a[1];
   var prevScores = React.useRef({});
 
   function sendNotif(title, body) {
@@ -279,46 +278,20 @@ function useLiveScores(now) {
       }).catch(function(){});
   }
 
-  function fetchAll() {
-    fetch("/api/fixtures?t=" + Date.now())
-      .then(function(r){return r.json();})
-      .then(function(data){
-        var fixtures = data.response || [];
-        var map = {};
-        fixtures.forEach(function(f) {
-          var s = f.fixture.status.short;
-          var isDone = s==="FT"||s==="AET"||s==="PEN";
-          if (isDone) {
-            map[f.fixture.id] = {
-              home: f.goals.home !== null ? f.goals.home : 0,
-              away: f.goals.away !== null ? f.goals.away : 0,
-              status: s,
-              team1: f.teams.home.name,
-              team2: f.teams.away.name,
-              round: f.league.round,
-              date: f.fixture.date,
-            };
-          }
-        });
-        setAllData(map);
-      }).catch(function(){});
-  }
-
   useEffect(function(){
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
     poll();
     fetchToday();
-    fetchAll(); // fetch all fixtures once on load
     var t1 = setInterval(poll, 30000);
     var t2 = setInterval(fetchToday, 60000);
-    var t3 = setInterval(fetchAll, 300000); // refresh all fixtures every 5 minutes
-    return function(){ clearInterval(t1); clearInterval(t2); clearInterval(t3); };
+    return function(){ clearInterval(t1); clearInterval(t2); };
   }, []);
 
-  return {liveData:liveData, todayData:todayData, allData:allData};
+  return {liveData:liveData, todayData:todayData};
 }
+
 
 // ── COMPONENTS ────────────────────────────────────────────────────────────────
 
@@ -340,7 +313,7 @@ function findLiveFixture(m, liveData) {
   });
 }
 
-function MatchCard({m, now, tx, liveData, todayData, allData}) {
+function MatchCard({m, now, tx, liveData, todayData}) {
   var st = mStatus(m, now, liveData);
   var isCol = m.team1==="Colombia" || m.team2==="Colombia";
   var isLive = st==="live";
@@ -351,7 +324,7 @@ function MatchCard({m, now, tx, liveData, todayData, allData}) {
   var apiData = null;
   if (liveData) apiData = findLiveFixture(m, liveData);
   if (!apiData && todayData) apiData = findLiveFixture(m, todayData);
-  if (!apiData && allData) apiData = findLiveFixture(m, allData);
+  if (!apiData && todayData) apiData = findLiveFixture(m, todayData);
 
   var displayScore = null;
   var displayMinute = null;
@@ -404,7 +377,7 @@ function MatchCard({m, now, tx, liveData, todayData, allData}) {
   );
 }
 
-function ScheduleTab({now, tx, liveData, todayData, allData}) {
+function ScheduleTab({now, tx, liveData, todayData}) {
   var _s = useState("upcoming"); var filter=_s[0]; var setFilter=_s[1];
   var grp = RAW_MATCHES.filter(function(m){return m.group;});
   var ko  = RAW_MATCHES.filter(function(m){return !m.group;});
@@ -431,9 +404,9 @@ function ScheduleTab({now, tx, liveData, todayData, allData}) {
     h("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,marginTop:6}},
       filters.map(function(o){return h("button",{key:o.v,onClick:function(){setFilter(o.v);},style:{padding:"5px 14px",borderRadius:20,border:"1px solid "+(filter===o.v?C.gold:C.border),background:filter===o.v?C.gold+"22":"transparent",color:filter===o.v?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},o.l);})
     ),
-    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},tx.noLive)),
-    filter==="upcoming" && byDate(upcoming, false).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData});}));}),
-    filter==="done" && byDate(done, true).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData});}));}),
+    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},tx.noLive)),
+    filter==="upcoming" && byDate(upcoming, false).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData});}));}),
+    filter==="done" && byDate(done, true).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData});}));}),
     filter==="ko" && ko.map(function(m,i){return h("div",{key:i,style:{background:C.card,border:"1px solid "+C.border,borderRadius:12,marginBottom:10,padding:"13px 15px"}},
       h("div",{style:{fontSize:10,color:C.gold,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}},m.round),
       h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
@@ -446,16 +419,16 @@ function ScheduleTab({now, tx, liveData, todayData, allData}) {
   );
 }
 
-function StandingsTab({tx, allData}) {
+function StandingsTab({tx, todayData}) {
   var _a=useState("Group K"); var active=_a[0]; var setActive=_a[1];
   var startPage=Math.floor(STANDINGS.findIndex(function(g){return g.group==="Group K";})/6);
   var _p=useState(startPage); var page=_p[0]; var setPage=_p[1];
   var PER=6, pages=Math.ceil(STANDINGS.length/PER);
 
   var standings = React.useMemo(function() {
-    if (!allData || Object.keys(allData).length === 0) return STANDINGS;
+    if (!todayData || Object.keys(todayData).length === 0) return STANDINGS;
     var matches = RAW_MATCHES.filter(function(m){return m.group;}).map(function(m) {
-      var api = findLiveFixture(m, allData);
+      var api = findLiveFixture(m, todayData);
       if (api && (api.status==="FT"||api.status==="AET"||api.status==="PEN")) {
         return Object.assign({}, m, {score:{ft:[api.home, api.away]}});
       }
@@ -478,7 +451,7 @@ function StandingsTab({tx, allData}) {
     return Object.entries(g).map(function([grp,teams]){
       return {group:grp,standings:Object.values(teams).sort(function(a,b){return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf;})};
     }).sort(function(a,b){return a.group.localeCompare(b.group);});
-  }, [allData]);
+  }, [todayData]);
 
   var visible=standings.slice(page*PER,page*PER+PER);
   var current=standings.find(function(g){return g.group===active;});
@@ -520,14 +493,14 @@ function StandingsTab({tx, allData}) {
   );
 }
 
-function BracketTab({now, tx, allData}) {
+function BracketTab({now, tx, todayData}) {
   var ko=RAW_MATCHES.filter(function(m){return !m.group;});
   var rounds=[...new Set(ko.map(function(m){return m.round;}))];
   var _a=useState(rounds[0]); var active=_a[0]; var setActive=_a[1];
 
   function getScore(m) {
-    if (allData) {
-      var api = findLiveFixture(m, allData);
+    if (todayData) {
+      var api = findLiveFixture(m, todayData);
       if (api && (api.status==="FT"||api.status==="AET"||api.status==="PEN")) {
         return api.home + "\u2013" + api.away;
       }
@@ -638,7 +611,6 @@ function App() {
   var _ld = useLiveScores(now);
   var liveData = _ld.liveData;
   var todayData = _ld.todayData;
-  var allData = _ld.allData;
   var liveCount = Object.keys(liveData).length;
   useEffect(function(){var t=setInterval(function(){setNow(new Date());},60000);return function(){clearInterval(t);};}, []);
 
@@ -673,10 +645,10 @@ function App() {
         )
       )
     ),
-    tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData}),
-    tab==="standings" && h(StandingsTab,{tx:tx,allData:allData}),
+    tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData,todayData:todayData}),
+    tab==="standings" && h(StandingsTab,{tx:tx,todayData:todayData}),
     tab==="forecast"  && h(ForecastTab,{now:now,tx:tx,liveData:liveData}),
-    tab==="bracket"   && h(BracketTab,{now:now,tx:tx,allData:allData}),
+    tab==="bracket"   && h(BracketTab,{now:now,tx:tx,todayData:todayData}),
     h("div",{style:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:"1px solid "+C.border,display:"flex",zIndex:20}},
       TABS.map(function(t){return h("button",{key:t.id,onClick:function(){setTab(t.id);},style:{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s",position:"relative"}},
         h("div",{style:{position:"relative",display:"inline-block"}},
