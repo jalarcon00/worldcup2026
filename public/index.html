@@ -340,17 +340,18 @@ function findLiveFixture(m, liveData) {
   });
 }
 
-function MatchCard({m, now, tx, liveData, todayData}) {
+function MatchCard({m, now, tx, liveData, todayData, allData}) {
   var st = mStatus(m, now, liveData);
   var isCol = m.team1==="Colombia" || m.team2==="Colombia";
   var isLive = st==="live";
   var isDone = st==="done";
   var dt = parseUTC(m.date, m.time);
 
-  // Get API data — live data for live matches, today data for finished ones
+  // Get API data — check live, today, and all fixtures
   var apiData = null;
   if (liveData) apiData = findLiveFixture(m, liveData);
   if (!apiData && todayData) apiData = findLiveFixture(m, todayData);
+  if (!apiData && allData) apiData = findLiveFixture(m, allData);
 
   var displayScore = null;
   var displayMinute = null;
@@ -403,7 +404,7 @@ function MatchCard({m, now, tx, liveData, todayData}) {
   );
 }
 
-function ScheduleTab({now, tx, liveData, todayData}) {
+function ScheduleTab({now, tx, liveData, todayData, allData}) {
   var _s = useState("upcoming"); var filter=_s[0]; var setFilter=_s[1];
   var grp = RAW_MATCHES.filter(function(m){return m.group;});
   var ko  = RAW_MATCHES.filter(function(m){return !m.group;});
@@ -430,9 +431,9 @@ function ScheduleTab({now, tx, liveData, todayData}) {
     h("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,marginTop:6}},
       filters.map(function(o){return h("button",{key:o.v,onClick:function(){setFilter(o.v);},style:{padding:"5px 14px",borderRadius:20,border:"1px solid "+(filter===o.v?C.gold:C.border),background:filter===o.v?C.gold+"22":"transparent",color:filter===o.v?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},o.l);})
     ),
-    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},tx.noLive)),
-    filter==="upcoming" && byDate(upcoming, false).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData});}));}),
-    filter==="done" && byDate(done, true).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData});}));}),
+    filter==="live" && (live.length>0 ? live.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData});}) : h("div",{style:{textAlign:"center",color:C.muted,fontSize:13,padding:"30px 0"}},tx.noLive)),
+    filter==="upcoming" && byDate(upcoming, false).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData});}));}),
+    filter==="done" && byDate(done, true).map(function(e){var d=e[0],arr=e[1];return h("div",{key:d},h("div",{style:{fontSize:11,fontWeight:700,color:C.goldL,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:12,marginBottom:6}},d),arr.map(function(m,i){return h(MatchCard,{key:i,m:m,now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData});}));}),
     filter==="ko" && ko.map(function(m,i){return h("div",{key:i,style:{background:C.card,border:"1px solid "+C.border,borderRadius:12,marginBottom:10,padding:"13px 15px"}},
       h("div",{style:{fontSize:10,color:C.gold,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}},m.round),
       h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
@@ -672,7 +673,7 @@ function App() {
         )
       )
     ),
-    tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData,todayData:todayData}),
+    tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData,todayData:todayData,allData:allData}),
     tab==="standings" && h(StandingsTab,{tx:tx,allData:allData}),
     tab==="forecast"  && h(ForecastTab,{now:now,tx:tx,liveData:liveData}),
     tab==="bracket"   && h(BracketTab,{now:now,tx:tx,allData:allData}),
