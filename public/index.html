@@ -325,19 +325,26 @@ function useLiveScores(now) {
 
 // Normalize team names for fuzzy matching (handles Türkiye vs Turkey, etc.)
 function normalizeName(n) {
+  if (!n) return "";
   return n.toLowerCase()
-    .replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/ş/g,"s").replace(/ı/g,"i").replace(/ğ/g,"g")
+    .replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c").replace(/ş/g,"s")
+    .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/é/g,"e").replace(/á/g,"a")
+    .replace(/í/g,"i").replace(/ó/g,"o").replace(/ú/g,"u").replace(/ñ/g,"n")
     .replace(/[^a-z]/g,"");
 }
 
+// Also try partial match — if one name contains the other
+function namesMatch(a, b) {
+  var na = normalizeName(a), nb = normalizeName(b);
+  return na === nb || na.indexOf(nb) !== -1 || nb.indexOf(na) !== -1;
+}
+
 function findLiveFixture(m, liveData) {
-  var t1 = normalizeName(m.team1);
-  var t2 = normalizeName(m.team2);
+  if (!liveData) return null;
   var vals = Object.values(liveData);
   return vals.find(function(f) {
-    var ft1 = normalizeName(f.team1);
-    var ft2 = normalizeName(f.team2);
-    return (ft1===t1 && ft2===t2) || (ft1===t2 && ft2===t1);
+    return (namesMatch(f.team1,m.team1) && namesMatch(f.team2,m.team2)) ||
+           (namesMatch(f.team1,m.team2) && namesMatch(f.team2,m.team1));
   });
 }
 
@@ -592,158 +599,118 @@ function BracketTab({now, tx, todayData}) {
     );
   }
 
-  // ── HORIZONTAL SCROLLABLE BRACKET ────────────────────────────────────────
-  // Card width and spacing
-  var CW = 130; // card width px
-  var CH = 52;  // card height px
-  var GAP = 10; // gap between rounds
-  var CONN = 28; // connector width
-
-  function MiniCard(matchNum, side) {
-    var m = matchMap[matchNum];
-    if (!m) return h("div",{style:{width:CW,height:CH,background:C.border,borderRadius:6,opacity:0.3}});
-    var t1 = resolveTeam(m.team1, matchMap);
-    var t2 = resolveTeam(m.team2, matchMap);
-    var score = getScore(m);
-    var s1 = score ? parseInt(score.split("\u2013")[0]) : null;
-    var s2 = score ? parseInt(score.split("\u2013")[1]) : null;
-    var win1 = s1!==null && s1>s2, win2 = s2!==null && s2>s1;
-    var isCol = t1.indexOf("Colombia")!==-1 || t2.indexOf("Colombia")!==-1;
-    var border = isCol ? C.col+"88" : score ? C.border : C.border;
-    var bg = isCol ? "#1a1800" : C.card;
-
-    return h("div",{style:{width:CW,height:CH,background:bg,border:"1px solid "+border,borderRadius:6,overflow:"hidden",flexShrink:0}},
-      h("div",{style:{padding:"3px 6px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid "+C.border+"50",height:CH/2}},
-        h("span",{style:{fontSize:9,fontWeight:win1?800:400,color:win1?C.white:C.muted,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:90}},fl(t1)+" "+t1),
-        s1!==null && h("span",{style:{fontSize:11,fontWeight:800,color:win1?C.goldL:C.muted,marginLeft:4,flexShrink:0}},s1)
-      ),
-      h("div",{style:{padding:"3px 6px",display:"flex",justifyContent:"space-between",alignItems:"center",height:CH/2}},
-        h("span",{style:{fontSize:9,fontWeight:win2?800:400,color:win2?C.white:C.muted,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:90}},fl(t2)+" "+t2),
-        s2!==null && h("span",{style:{fontSize:11,fontWeight:800,color:win2?C.goldL:C.muted,marginLeft:4,flexShrink:0}},s2)
-      )
-    );
-  }
-
-  // Connector SVG between rounds
-  function Connector(topY, botY, totalH) {
-    var midX = CONN/2;
-    var midY = (topY + botY) / 2;
-    return h("svg",{width:CONN,height:totalH,style:{flexShrink:0,overflow:"visible"}},
-      h("path",{d:"M 0 "+topY+" L "+midX+" "+topY+" L "+midX+" "+midY+" L "+midX+" "+botY+" L "+CONN+" "+botY,stroke:C.border,strokeWidth:1.5,fill:"none"})
-    );
-  }
-
-  // Layout: R32 (16 matches) → R16 (8) → QF (4) → SF (2) → F (1)
-  // Each pair of R32 feeds into one R16 match
-  // Match ordering: top half (73,76,77,78,81,82,85,86) → R16 (89,91,93,95)
-  //                bottom half (74,75,79,80,83,84,87,88) → R16 (90,92,94,96)
-  var TOP = [
-    {r32:[73,76], r16:89, qf:97, sf:101},
-    {r32:[77,78], r16:91, qf:99, sf:101},
-    {r32:[81,82], r16:93, qf:98, sf:102},
-    {r32:[85,86], r16:95, qf:100, sf:102},
-  ];
-  var BOT = [
-    {r32:[74,75], r16:90, qf:97, sf:101},
-    {r32:[79,80], r16:92, qf:99, sf:101},
-    {r32:[83,84], r16:94, qf:98, sf:102},
-    {r32:[87,88], r16:96, qf:100, sf:102},
-  ];
-  var SLOT_H = CH + 12; // height per slot including margin
-
-  function BracketHalf(slots) {
-    // slots: array of {r32:[a,b], r16, qf, sf}
-    var totalH = slots.length * 2 * SLOT_H;
-    return h("div",{style:{display:"flex",alignItems:"flex-start"}},
-      // R32 column
-      h("div",{style:{display:"flex",flexDirection:"column",gap:0}},
-        slots.map(function(s,i){
-          return h("div",{key:i,style:{display:"flex",flexDirection:"column",gap:12,marginBottom:12}},
-            MiniCard(s.r32[0]),
-            MiniCard(s.r32[1])
-          );
-        })
-      ),
-      // R32→R16 connectors
-      h("div",{style:{display:"flex",flexDirection:"column"}},
-        slots.map(function(s,i){
-          var h1 = CH/2 + 6; // midpoint of first card
-          var h2 = CH + 12 + CH/2 + 6; // midpoint of second card
-          var totalSlotH = CH*2 + 12 + 12;
-          return h("div",{key:i,style:{height:totalSlotH,marginBottom:0}},
-            Connector(h1, h2, totalSlotH)
-          );
-        })
-      ),
-      // R16 column
-      h("div",{style:{display:"flex",flexDirection:"column",gap:0}},
-        slots.map(function(s,i){
-          var slotH = CH*2 + 12 + 12;
-          return h("div",{key:i,style:{height:slotH,display:"flex",alignItems:"center",marginBottom:0}},
-            MiniCard(s.r16)
-          );
-        })
-      ),
-      // R16→QF connectors
-      h("div",{style:{display:"flex",flexDirection:"column"}},
-        slots.filter(function(_,i){return i%2===0;}).map(function(s,idx){
-          var slotH = CH*2 + 12 + 12;
-          var h1 = slotH/2;
-          var h2 = slotH + slotH/2;
-          return h("div",{key:idx,style:{height:slotH*2}},
-            Connector(h1, h2, slotH*2)
-          );
-        })
-      ),
-      // QF column
-      h("div",{style:{display:"flex",flexDirection:"column",gap:0}},
-        slots.filter(function(_,i){return i%2===0;}).map(function(s,idx){
-          var slotH = (CH*2+12+12)*2;
-          return h("div",{key:idx,style:{height:slotH,display:"flex",alignItems:"center"}},
-            MiniCard(s.qf)
-          );
-        })
-      )
-    );
-  }
-
   function BracketVisual() {
-    return h("div",{style:{overflowX:"auto",overflowY:"hidden",paddingBottom:16,cursor:"grab"}},
-      h("div",{style:{display:"inline-flex",flexDirection:"column",minWidth:700,padding:"8px 4px"}},
-        // Column headers
-        h("div",{style:{display:"flex",gap:0,marginBottom:8,paddingLeft:0}},
-          [["Round of 32",CW],["",CONN],["Round of 16",CW],["",CONN],["QF",CW],["",CONN+10],["SF",CW],["",CONN+10],["\uD83C\uDFC6 Final",CW]].map(function(col,i){
-            return h("div",{key:i,style:{width:col[0]===""||(col[0]==="") ? col[1] : col[1],minWidth:col[1],fontSize:9,fontWeight:700,color:col[0]?C.gold:C.muted,letterSpacing:"0.1em",textTransform:"uppercase",textAlign:"center",flexShrink:0}},col[0]);
+    // Complete bracket pairs — each row is [r32_top, r32_bot] feeding into r16
+    var ROWS = [
+      // TOP HALF
+      {r32a:73, r32b:76, r16:89, qf:97,  sf:101, label:"A"},
+      {r32a:77, r32b:78, r16:91, qf:99,  sf:101, label:"B"},
+      {r32a:81, r32b:82, r16:93, qf:98,  sf:102, label:"C"},
+      {r32a:85, r32b:86, r16:95, qf:100, sf:102, label:"D"},
+      // BOTTOM HALF
+      {r32a:74, r32b:75, r16:90, qf:97,  sf:101, label:"E"},
+      {r32a:79, r32b:80, r16:92, qf:99,  sf:101, label:"F"},
+      {r32a:83, r32b:84, r16:94, qf:98,  sf:102, label:"G"},
+      {r32a:87, r32b:88, r16:96, qf:100, sf:102, label:"H"},
+    ];
+
+    var CW=128, CH=50, CONN=24;
+
+    function MC(num) {
+      var m = matchMap[num];
+      if (!m) return h("div",{style:{width:CW,height:CH,background:C.border+"44",borderRadius:6,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}},
+        h("span",{style:{fontSize:9,color:C.muted}},num?"M"+num:"TBD")
+      );
+      var t1=resolveTeam(m.team1,matchMap), t2=resolveTeam(m.team2,matchMap);
+      var sc=getScore(m);
+      var s1=sc?parseInt(sc.split("\u2013")[0]):null, s2=sc?parseInt(sc.split("\u2013")[1]):null;
+      var w1=s1!==null&&s1>s2, w2=s2!==null&&s2>s1;
+      var isCol=t1.indexOf("Colombia")!==-1||t2.indexOf("Colombia")!==-1;
+      return h("div",{style:{width:CW,height:CH,background:isCol?"#1a1800":C.card,border:"1px solid "+(isCol?C.col+"88":C.border),borderRadius:6,overflow:"hidden",flexShrink:0}},
+        h("div",{style:{height:CH/2,padding:"0 6px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid "+C.border+"50"}},
+          h("span",{style:{fontSize:9,fontWeight:w1?800:400,color:w1?C.white:C.muted,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:95}},fl(t1)+" "+t1),
+          s1!==null&&h("span",{style:{fontSize:11,fontWeight:800,color:w1?C.goldL:C.muted,flexShrink:0,marginLeft:2}},s1)
+        ),
+        h("div",{style:{height:CH/2,padding:"0 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+          h("span",{style:{fontSize:9,fontWeight:w2?800:400,color:w2?C.white:C.muted,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:95}},fl(t2)+" "+t2),
+          s2!==null&&h("span",{style:{fontSize:11,fontWeight:800,color:w2?C.goldL:C.muted,flexShrink:0,marginLeft:2}},s2)
+        )
+      );
+    }
+
+    function Conn(h1,h2,totalH) {
+      var mx=CONN/2;
+      return h("svg",{width:CONN,height:totalH,style:{flexShrink:0}},
+        h("polyline",{points:"0,"+h1+" "+mx+","+h1+" "+mx+","+h2+" "+CONN+","+h2,stroke:C.border,strokeWidth:1.5,fill:"none"})
+      );
+    }
+
+    var rowH = CH*2+20; // height of one R32 pair slot
+    var totalH = ROWS.length * rowH;
+
+    // Build columns
+    function R32Col() {
+      return h("div",{style:{display:"flex",flexDirection:"column"}},
+        ROWS.map(function(row,i){
+          return h("div",{key:i,style:{marginBottom:i<7?8:0}},
+            h("div",{style:{marginBottom:4}}, MC(row.r32a)),
+            MC(row.r32b)
+          );
+        })
+      );
+    }
+
+    function ConnCol(fromH, factor) {
+      return h("div",{style:{display:"flex",flexDirection:"column"}},
+        ROWS.filter(function(_,i){return i%factor===0;}).map(function(row,i){
+          var slotH = rowH*factor + (factor-1)*8;
+          var top = CH/2+4;
+          var bot = slotH - CH/2 - 4;
+          return h("div",{key:i,style:{marginBottom:i<(8/factor-1)?8*factor:0}},
+            Conn(top, bot, slotH)
+          );
+        })
+      );
+    }
+
+    function RoundCol(getNum, factor) {
+      return h("div",{style:{display:"flex",flexDirection:"column"}},
+        ROWS.filter(function(_,i){return i%factor===0;}).map(function(row,i){
+          var slotH = rowH*factor + (factor-1)*8;
+          return h("div",{key:i,style:{height:slotH,display:"flex",alignItems:"center",marginBottom:i<(8/factor-1)?8*factor:0}},
+            MC(getNum(row,i))
+          );
+        })
+      );
+    }
+
+    return h("div",{style:{overflowX:"auto",paddingBottom:12,WebkitOverflowScrolling:"touch"}},
+      h("div",{style:{display:"inline-flex",flexDirection:"column",padding:"4px 8px"}},
+        // Headers
+        h("div",{style:{display:"flex",alignItems:"center",marginBottom:8,gap:0}},
+          [["R32",CW],["",CONN],["R16",CW],["",CONN],["QF",CW],["",CONN],["SF",CW],["",CONN],["\uD83C\uDFC6",CW]].map(function(c,i){
+            return h("div",{key:i,style:{width:c[1],minWidth:c[1],textAlign:"center",fontSize:9,fontWeight:700,color:c[0]?C.gold:"transparent",letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0}},c[0]);
           })
         ),
-        // Top half
+        // Bracket
         h("div",{style:{display:"flex",alignItems:"flex-start",gap:0}},
-          h("div",null, h(function(){return BracketHalf(TOP.slice(0,2));})),
-          // Top QF → SF connector
-          h("div",{style:{width:CONN+10,display:"flex",alignItems:"center",paddingTop:(CH*2+12+12)*2/2-CH/2}},
-            h("svg",{width:CONN+10,height:(CH*2+12+12)*4,style:{overflow:"visible"}},
-              h("path",{d:"M 0 "+(CH/2)+" L "+((CONN+10)/2)+" "+(CH/2)+" L "+((CONN+10)/2)+" "+((CH*2+12+12)*2+CH/2)+" L "+(CONN+10)+" "+((CH*2+12+12)*2+CH/2),stroke:C.border,strokeWidth:1.5,fill:"none"})
+          R32Col(),
+          ConnCol(rowH, 1),
+          RoundCol(function(r){return r.r16;}, 2),
+          ConnCol(rowH, 2),
+          RoundCol(function(r){return r.qf;}, 4),
+          ConnCol(rowH, 4),
+          RoundCol(function(r){return r.sf;}, 8),
+          // SF→Final connector
+          h("div",{style:{width:CONN,height:totalH+ROWS.length*8,display:"flex",alignItems:"center"}},
+            h("svg",{width:CONN,height:totalH+ROWS.length*8,style:{flexShrink:0}},
+              h("polyline",{points:"0,"+(rowH/2)+" "+(CONN/2)+","+(rowH/2)+" "+(CONN/2)+","+(totalH/2)+" "+CONN+","+(totalH/2),stroke:C.border,strokeWidth:1.5,fill:"none"})
             )
           ),
-          // Top SF
-          h("div",{style:{width:CW,display:"flex",alignItems:"center",height:(CH*2+12+12)*4,justifyContent:"center"}},
-            MiniCard(101)
+          // Final
+          h("div",{style:{height:totalH+ROWS.length*8,display:"flex",alignItems:"center"}},
+            MC(104)
           )
-        ),
-        // Final
-        h("div",{style:{display:"flex",justifyContent:"center",margin:"8px 0"}},
-          h("div",{style:{display:"flex",alignItems:"center",gap:0}},
-            h("div",{style:{width:(CW+(CONN))*2+CW+(CONN+10)*2,display:"flex",justifyContent:"center",alignItems:"center"}},
-              h("div",{style:{textAlign:"center"}},
-                h("div",{style:{fontSize:9,color:C.goldL,fontWeight:700,marginBottom:6,letterSpacing:"0.1em",textTransform:"uppercase"}},"\uD83C\uDFC6 FINAL · Jul 19"),
-                MiniCard(104)
-              )
-            )
-          )
-        ),
-        // Bottom half
-        h("div",{style:{display:"flex",alignItems:"flex-start",gap:0}},
-          h("div",null, h(function(){return BracketHalf(TOP.slice(2,4));}))
         )
       )
     );
@@ -786,7 +753,7 @@ function BracketTab({now, tx, todayData}) {
 }
 
 function ForecastTab({now, tx, liveData}) {
-  var upcoming = RAW_MATCHES.filter(function(m){return m.group && mStatus(m,now,liveData)==="upcoming";}).slice(0,5);
+  var upcoming = RAW_MATCHES.filter(function(m){return mStatus(m,now,liveData)==="upcoming";}).slice(0,5);
   var _p=useState({}); var preds=_p[0]; var setPreds=_p[1];
   var _l=useState({}); var loading=_l[0]; var setLoading=_l[1];
 
