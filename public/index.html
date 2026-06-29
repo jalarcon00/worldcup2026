@@ -118,7 +118,7 @@ const RAW_MATCHES = [
   {round:"Matchday 17",date:"2026-06-27",time:"17:00 UTC-4",team1:"Panama",team2:"England",score:{ft:[0,2]},group:"Group L",ground:"New York/New Jersey (East Rutherford)"},
   {round:"Matchday 17",date:"2026-06-27",time:"17:00 UTC-4",team1:"Croatia",team2:"Ghana",score:{ft:[2,1]},group:"Group L",ground:"Philadelphia"},
     // ── ROUND OF 32 ──────────────────────────────────────────────────────────
-  {round:"Round of 32",match:73,date:"2026-06-28",time:"15:00 UTC-4",team1:"South Africa",team2:"Canada",ground:"Los Angeles (Inglewood)"},
+  {round:"Round of 32",match:73,date:"2026-06-28",time:"15:00 UTC-4",team1:"South Africa",team2:"Canada",score:{ft:[0,1]},ground:"Los Angeles (Inglewood)"},
   {round:"Round of 32",match:74,date:"2026-06-29",time:"15:30 UTC-4",team1:"Germany",team2:"Paraguay",ground:"Boston (Foxborough)"},
   {round:"Round of 32",match:75,date:"2026-06-29",time:"20:00 UTC-4",team1:"Netherlands",team2:"Morocco",ground:"Monterrey (Guadalupe)"},
   {round:"Round of 32",match:76,date:"2026-06-29",time:"12:00 UTC-4",team1:"Brazil",team2:"Japan",ground:"Houston"},
@@ -528,7 +528,7 @@ function StandingsTab({tx, todayData}) {
 function BracketTab({now, tx, todayData}) {
   var ko=RAW_MATCHES.filter(function(m){return !m.group;});
   var rounds=[...new Set(ko.map(function(m){return m.round;}))];
-  var _a=useState(rounds[0]); var active=_a[0]; var setActive=_a[1];
+  var _a=useState("__bracket__"); var active=_a[0]; var setActive=_a[1];
 
   function getScore(m) {
     if (todayData) {
@@ -561,23 +561,212 @@ function BracketTab({now, tx, todayData}) {
   var current=ko.filter(function(m){return m.round===active;});
   function lbl(r){return r.replace("Round of ","R").replace("Quarter-final","QF").replace("Semi-final","SF").replace("Match for third place","3rd");}
 
+  // Visual bracket card
+  function BracketCard(m, i) {
+    var t1 = resolveTeam(m.team1, matchMap);
+    var t2 = resolveTeam(m.team2, matchMap);
+    var isCol = t1.indexOf("Colombia")!==-1 || t2.indexOf("Colombia")!==-1 || m.team1==="Colombia" || m.team2==="Colombia";
+    var score = getScore(m);
+    var s1 = score ? parseInt(score.split("\u2013")[0]) : null;
+    var s2 = score ? parseInt(score.split("\u2013")[1]) : null;
+    var win1 = s1 !== null && s1 > s2;
+    var win2 = s2 !== null && s2 > s1;
+    var dt = parseUTC(m.date, m.time);
+
+    return h("div",{key:i,style:{background:isCol?"#1a1800":C.card,border:"1px solid "+(isCol?C.col+"55":C.border),borderRadius:10,overflow:"hidden",marginBottom:8,width:"100%"}},
+      // Header
+      h("div",{style:{padding:"4px 10px",background:C.border,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        m.match && h("span",{style:{fontSize:9,fontWeight:700,color:C.goldL,letterSpacing:"0.1em"}},"M"+m.match),
+        h("span",{style:{fontSize:9,color:C.muted}},fmtDate(dt)+" "+fmtTime(dt))
+      ),
+      // Team 1
+      h("div",{style:{padding:"7px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid "+C.border+"40"}},
+        h("span",{style:{fontSize:12,fontWeight:win1?800:500,color:win1?C.white:C.muted}},fl(t1)+" "+t1),
+        s1!==null && h("span",{style:{fontSize:14,fontWeight:800,color:win1?C.goldL:C.muted}},s1)
+      ),
+      // Team 2
+      h("div",{style:{padding:"7px 10px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        h("span",{style:{fontSize:12,fontWeight:win2?800:500,color:win2?C.white:s1===null?C.muted:C.muted}},fl(t2)+" "+t2),
+        s2!==null && h("span",{style:{fontSize:14,fontWeight:800,color:win2?C.goldL:C.muted}},s2)
+      )
+    );
+  }
+
+  // ── HORIZONTAL SCROLLABLE BRACKET ────────────────────────────────────────
+  // Card width and spacing
+  var CW = 130; // card width px
+  var CH = 52;  // card height px
+  var GAP = 10; // gap between rounds
+  var CONN = 28; // connector width
+
+  function MiniCard(matchNum, side) {
+    var m = matchMap[matchNum];
+    if (!m) return h("div",{style:{width:CW,height:CH,background:C.border,borderRadius:6,opacity:0.3}});
+    var t1 = resolveTeam(m.team1, matchMap);
+    var t2 = resolveTeam(m.team2, matchMap);
+    var score = getScore(m);
+    var s1 = score ? parseInt(score.split("\u2013")[0]) : null;
+    var s2 = score ? parseInt(score.split("\u2013")[1]) : null;
+    var win1 = s1!==null && s1>s2, win2 = s2!==null && s2>s1;
+    var isCol = t1.indexOf("Colombia")!==-1 || t2.indexOf("Colombia")!==-1;
+    var border = isCol ? C.col+"88" : score ? C.border : C.border;
+    var bg = isCol ? "#1a1800" : C.card;
+
+    return h("div",{style:{width:CW,height:CH,background:bg,border:"1px solid "+border,borderRadius:6,overflow:"hidden",flexShrink:0}},
+      h("div",{style:{padding:"3px 6px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid "+C.border+"50",height:CH/2}},
+        h("span",{style:{fontSize:9,fontWeight:win1?800:400,color:win1?C.white:C.muted,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:90}},fl(t1)+" "+t1),
+        s1!==null && h("span",{style:{fontSize:11,fontWeight:800,color:win1?C.goldL:C.muted,marginLeft:4,flexShrink:0}},s1)
+      ),
+      h("div",{style:{padding:"3px 6px",display:"flex",justifyContent:"space-between",alignItems:"center",height:CH/2}},
+        h("span",{style:{fontSize:9,fontWeight:win2?800:400,color:win2?C.white:C.muted,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:90}},fl(t2)+" "+t2),
+        s2!==null && h("span",{style:{fontSize:11,fontWeight:800,color:win2?C.goldL:C.muted,marginLeft:4,flexShrink:0}},s2)
+      )
+    );
+  }
+
+  // Connector SVG between rounds
+  function Connector(topY, botY, totalH) {
+    var midX = CONN/2;
+    var midY = (topY + botY) / 2;
+    return h("svg",{width:CONN,height:totalH,style:{flexShrink:0,overflow:"visible"}},
+      h("path",{d:"M 0 "+topY+" L "+midX+" "+topY+" L "+midX+" "+midY+" L "+midX+" "+botY+" L "+CONN+" "+botY,stroke:C.border,strokeWidth:1.5,fill:"none"})
+    );
+  }
+
+  // Layout: R32 (16 matches) → R16 (8) → QF (4) → SF (2) → F (1)
+  // Each pair of R32 feeds into one R16 match
+  // Match ordering: top half (73,76,77,78,81,82,85,86) → R16 (89,91,93,95)
+  //                bottom half (74,75,79,80,83,84,87,88) → R16 (90,92,94,96)
+  var TOP = [
+    {r32:[73,76], r16:89, qf:97, sf:101},
+    {r32:[77,78], r16:91, qf:99, sf:101},
+    {r32:[81,82], r16:93, qf:98, sf:102},
+    {r32:[85,86], r16:95, qf:100, sf:102},
+  ];
+  var BOT = [
+    {r32:[74,75], r16:90, qf:97, sf:101},
+    {r32:[79,80], r16:92, qf:99, sf:101},
+    {r32:[83,84], r16:94, qf:98, sf:102},
+    {r32:[87,88], r16:96, qf:100, sf:102},
+  ];
+  var SLOT_H = CH + 12; // height per slot including margin
+
+  function BracketHalf(slots) {
+    // slots: array of {r32:[a,b], r16, qf, sf}
+    var totalH = slots.length * 2 * SLOT_H;
+    return h("div",{style:{display:"flex",alignItems:"flex-start"}},
+      // R32 column
+      h("div",{style:{display:"flex",flexDirection:"column",gap:0}},
+        slots.map(function(s,i){
+          return h("div",{key:i,style:{display:"flex",flexDirection:"column",gap:12,marginBottom:12}},
+            MiniCard(s.r32[0]),
+            MiniCard(s.r32[1])
+          );
+        })
+      ),
+      // R32→R16 connectors
+      h("div",{style:{display:"flex",flexDirection:"column"}},
+        slots.map(function(s,i){
+          var h1 = CH/2 + 6; // midpoint of first card
+          var h2 = CH + 12 + CH/2 + 6; // midpoint of second card
+          var totalSlotH = CH*2 + 12 + 12;
+          return h("div",{key:i,style:{height:totalSlotH,marginBottom:0}},
+            Connector(h1, h2, totalSlotH)
+          );
+        })
+      ),
+      // R16 column
+      h("div",{style:{display:"flex",flexDirection:"column",gap:0}},
+        slots.map(function(s,i){
+          var slotH = CH*2 + 12 + 12;
+          return h("div",{key:i,style:{height:slotH,display:"flex",alignItems:"center",marginBottom:0}},
+            MiniCard(s.r16)
+          );
+        })
+      ),
+      // R16→QF connectors
+      h("div",{style:{display:"flex",flexDirection:"column"}},
+        slots.filter(function(_,i){return i%2===0;}).map(function(s,idx){
+          var slotH = CH*2 + 12 + 12;
+          var h1 = slotH/2;
+          var h2 = slotH + slotH/2;
+          return h("div",{key:idx,style:{height:slotH*2}},
+            Connector(h1, h2, slotH*2)
+          );
+        })
+      ),
+      // QF column
+      h("div",{style:{display:"flex",flexDirection:"column",gap:0}},
+        slots.filter(function(_,i){return i%2===0;}).map(function(s,idx){
+          var slotH = (CH*2+12+12)*2;
+          return h("div",{key:idx,style:{height:slotH,display:"flex",alignItems:"center"}},
+            MiniCard(s.qf)
+          );
+        })
+      )
+    );
+  }
+
+  function BracketVisual() {
+    return h("div",{style:{overflowX:"auto",overflowY:"hidden",paddingBottom:16,cursor:"grab"}},
+      h("div",{style:{display:"inline-flex",flexDirection:"column",minWidth:700,padding:"8px 4px"}},
+        // Column headers
+        h("div",{style:{display:"flex",gap:0,marginBottom:8,paddingLeft:0}},
+          [["Round of 32",CW],["",CONN],["Round of 16",CW],["",CONN],["QF",CW],["",CONN+10],["SF",CW],["",CONN+10],["\uD83C\uDFC6 Final",CW]].map(function(col,i){
+            return h("div",{key:i,style:{width:col[0]===""||(col[0]==="") ? col[1] : col[1],minWidth:col[1],fontSize:9,fontWeight:700,color:col[0]?C.gold:C.muted,letterSpacing:"0.1em",textTransform:"uppercase",textAlign:"center",flexShrink:0}},col[0]);
+          })
+        ),
+        // Top half
+        h("div",{style:{display:"flex",alignItems:"flex-start",gap:0}},
+          h("div",null, h(function(){return BracketHalf(TOP.slice(0,2));})),
+          // Top QF → SF connector
+          h("div",{style:{width:CONN+10,display:"flex",alignItems:"center",paddingTop:(CH*2+12+12)*2/2-CH/2}},
+            h("svg",{width:CONN+10,height:(CH*2+12+12)*4,style:{overflow:"visible"}},
+              h("path",{d:"M 0 "+(CH/2)+" L "+((CONN+10)/2)+" "+(CH/2)+" L "+((CONN+10)/2)+" "+((CH*2+12+12)*2+CH/2)+" L "+(CONN+10)+" "+((CH*2+12+12)*2+CH/2),stroke:C.border,strokeWidth:1.5,fill:"none"})
+            )
+          ),
+          // Top SF
+          h("div",{style:{width:CW,display:"flex",alignItems:"center",height:(CH*2+12+12)*4,justifyContent:"center"}},
+            MiniCard(101)
+          )
+        ),
+        // Final
+        h("div",{style:{display:"flex",justifyContent:"center",margin:"8px 0"}},
+          h("div",{style:{display:"flex",alignItems:"center",gap:0}},
+            h("div",{style:{width:(CW+(CONN))*2+CW+(CONN+10)*2,display:"flex",justifyContent:"center",alignItems:"center"}},
+              h("div",{style:{textAlign:"center"}},
+                h("div",{style:{fontSize:9,color:C.goldL,fontWeight:700,marginBottom:6,letterSpacing:"0.1em",textTransform:"uppercase"}},"\uD83C\uDFC6 FINAL · Jul 19"),
+                MiniCard(104)
+              )
+            )
+          )
+        ),
+        // Bottom half
+        h("div",{style:{display:"flex",alignItems:"flex-start",gap:0}},
+          h("div",null, h(function(){return BracketHalf(TOP.slice(2,4));}))
+        )
+      )
+    );
+  }
+
   return h("div",{style:{padding:"14px 14px 0"}},
-    h("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14,marginTop:6}},
-      rounds.map(function(r){return h("button",{key:r,onClick:function(){setActive(r);},style:{padding:"5px 12px",borderRadius:20,border:"1px solid "+(active===r?C.gold:C.border),background:active===r?C.gold+"22":"transparent",color:active===r?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},lbl(r));})
+    // View toggle: Visual bracket vs Round list
+    h("div",{style:{display:"flex",gap:6,marginBottom:14,marginTop:6}},
+      h("button",{onClick:function(){setActive("__bracket__");},style:{padding:"5px 14px",borderRadius:20,border:"1px solid "+(active==="__bracket__"?C.gold:C.border),background:active==="__bracket__"?C.gold+"22":"transparent",color:active==="__bracket__"?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},"\uD83C\uDFF7 Bracket"),
+      rounds.filter(function(r){return r!=="Final"&&r!=="Match for third place";}).map(function(r){return h("button",{key:r,onClick:function(){setActive(r);},style:{padding:"5px 12px",borderRadius:20,border:"1px solid "+(active===r?C.gold:C.border),background:active===r?C.gold+"22":"transparent",color:active===r?C.gold:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}},lbl(r));})
     ),
-    current.map(function(m,i){
+    active==="__bracket__" && h(BracketVisual,null),
+    active!=="__bracket__" && current.map(function(m,i){
       var t1 = resolveTeam(m.team1, matchMap);
       var t2 = resolveTeam(m.team2, matchMap);
       var isCol = t1.indexOf("Colombia")!==-1 || t2.indexOf("Colombia")!==-1 || m.team1==="Colombia" || m.team2==="Colombia";
       var dt=parseUTC(m.date,m.time);
       var score = getScore(m);
       return h("div",{key:i,style:{background:isCol?"#1a1800":C.card,border:"1px solid "+(isCol?C.col+"55":C.border),borderRadius:12,marginBottom:10,padding:"13px 15px"}},
-        // Match number badge
         h("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
           m.match && h("span",{style:{background:C.border,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:700,color:C.goldL,letterSpacing:"0.08em"}},"M"+m.match),
           isCol && h("span",{style:{fontSize:10,color:C.col,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}},tx.colombia)
         ),
-        // Note label for future matches
         m.note && !score && h("div",{style:{fontSize:11,color:C.muted,marginBottom:8,fontStyle:"italic"}},m.note),
         h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},
           h("span",{style:{fontSize:13,fontWeight:600,color:C.white,flex:1}},fl(t1)+" "+t1),
