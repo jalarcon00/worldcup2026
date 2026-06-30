@@ -122,12 +122,12 @@ const RAW_MATCHES = [
   {round:"Round of 32",match:74,date:"2026-06-29",time:"15:30 UTC-4",team1:"Germany",team2:"Paraguay",score:{ft:[1,1],pen:[3,4]},ground:"Boston (Foxborough)"},
   {round:"Round of 32",match:75,date:"2026-06-29",time:"20:00 UTC-4",team1:"Netherlands",team2:"Morocco",score:{ft:[1,1],pen:[2,3]},ground:"Monterrey (Guadalupe)"},
   {round:"Round of 32",match:76,date:"2026-06-29",time:"12:00 UTC-4",team1:"Brazil",team2:"Japan",score:{ft:[2,1]},ground:"Houston"},
-  {round:"Round of 32",match:77,date:"2026-06-30",time:"16:00 UTC-4",team1:"France",team2:"Sweden",score:{ft:[3,1]},ground:"New York/New Jersey (East Rutherford)"},
+  {round:"Round of 32",match:77,date:"2026-06-30",time:"16:00 UTC-4",team1:"France",team2:"Sweden",ground:"New York/New Jersey (East Rutherford)"},
   {round:"Round of 32",match:78,date:"2026-06-30",time:"12:00 UTC-4",team1:"Ivory Coast",team2:"Norway",score:{ft:[1,2]},ground:"Dallas (Arlington)"},
-  {round:"Round of 32",match:79,date:"2026-06-30",time:"20:00 UTC-4",team1:"Mexico",team2:"Ecuador",score:{ft:[2,1]},ground:"Mexico City"},
-  {round:"Round of 32",match:80,date:"2026-07-01",time:"11:00 UTC-4",team1:"England",team2:"DR Congo",score:{ft:[3,1]},ground:"Atlanta"},
-  {round:"Round of 32",match:81,date:"2026-07-01",time:"15:00 UTC-4",team1:"Belgium",team2:"Senegal",score:{ft:[1,2]},ground:"Seattle"},
-  {round:"Round of 32",match:82,date:"2026-07-01",time:"19:00 UTC-4",team1:"USA",team2:"Bosnia & Herzegovina",score:{ft:[2,1]},ground:"San Francisco Bay Area (Santa Clara)"},
+  {round:"Round of 32",match:79,date:"2026-06-30",time:"20:00 UTC-4",team1:"Mexico",team2:"Ecuador",ground:"Mexico City"},
+  {round:"Round of 32",match:80,date:"2026-07-01",time:"11:00 UTC-4",team1:"England",team2:"DR Congo",ground:"Atlanta"},
+  {round:"Round of 32",match:81,date:"2026-07-01",time:"15:00 UTC-4",team1:"Belgium",team2:"Senegal",ground:"Seattle"},
+  {round:"Round of 32",match:82,date:"2026-07-01",time:"19:00 UTC-4",team1:"USA",team2:"Bosnia & Herzegovina",ground:"San Francisco Bay Area (Santa Clara)"},
   {round:"Round of 32",match:83,date:"2026-07-02",time:"18:00 UTC-4",team1:"Portugal",team2:"Croatia",ground:"Toronto"},
   {round:"Round of 32",match:84,date:"2026-07-02",time:"14:00 UTC-4",team1:"Spain",team2:"Austria",ground:"Los Angeles (Inglewood)"},
   {round:"Round of 32",match:85,date:"2026-07-02",time:"22:00 UTC-4",team1:"Switzerland",team2:"Algeria",ground:"Vancouver"},
@@ -424,16 +424,17 @@ function ScheduleTab({now, tx, liveData, todayData}) {
   var doneGrp  = grp.filter(function(m){return mStatus(m,now,liveData)==="done";});
   var doneKo   = ko.filter(function(m){return mStatus(m,now,liveData)==="done";});
   function byDate(arr, newestFirst) {
-    var map={};
+    var map={};       // label -> matches[]
+    var labelDate={};  // label -> actual Date object for sorting
     arr.forEach(function(m){
-      var d=fmtDate(parseUTC(m.date,m.time));
-      if(!map[d])map[d]=[];
+      var dt = parseUTC(m.date, m.time);
+      var d = fmtDate(dt);
+      if(!map[d]) { map[d]=[]; labelDate[d]=dt; }
       map[d].push(m);
     });
     var entries = Object.entries(map);
     entries.sort(function(a,b){
-      var da=new Date(arr.find(function(m){return fmtDate(parseUTC(m.date,m.time))===a[0];}).date);
-      var db=new Date(arr.find(function(m){return fmtDate(parseUTC(m.date,m.time))===b[0];}).date);
+      var da = labelDate[a[0]], db = labelDate[b[0]];
       return newestFirst ? db-da : da-db;
     });
     return entries;
