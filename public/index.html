@@ -131,9 +131,9 @@ const RAW_MATCHES = [
   {round:"Round of 32",match:83,date:"2026-07-03",time:"19:00 UTC-4",team1:"Portugal",team2:"Croatia",score:{ft:[2,1]},ground:"BMO Field, Toronto"},
   {round:"Round of 32",match:84,date:"2026-07-02",time:"15:00 UTC-4",team1:"Spain",team2:"Austria",score:{ft:[3,0]},ground:"Los Angeles (Inglewood)"},
   {round:"Round of 32",match:85,date:"2026-07-03",time:"23:00 UTC-4",team1:"Switzerland",team2:"Algeria",score:{ft:[2,0]},ground:"BC Place, Vancouver"},
-  {round:"Round of 32",match:86,date:"2026-07-03",time:"17:00 UTC-4",team1:"Argentina",team2:"Cape Verde",ground:"Miami (Miami Gardens)"},
-  {round:"Round of 32",match:87,date:"2026-07-03",time:"21:30 UTC-4",team1:"Colombia",team2:"Ghana",ground:"Arrowhead Stadium, Kansas City"},
-  {round:"Round of 32",match:88,date:"2026-07-03",time:"13:00 UTC-4",team1:"Australia",team2:"Egypt",ground:"Dallas (Arlington)"},
+  {round:"Round of 32",match:86,date:"2026-07-03",time:"18:00 UTC-4",team1:"Argentina",team2:"Cape Verde",score:{ft:[2,2],aet:[3,2]},ground:"Hard Rock Stadium, Miami"},
+  {round:"Round of 32",match:87,date:"2026-07-03",time:"21:30 UTC-4",team1:"Colombia",team2:"Ghana",score:{ft:[1,0]},ground:"Arrowhead Stadium, Kansas City"},
+  {round:"Round of 32",match:88,date:"2026-07-03",time:"14:00 UTC-4",team1:"Australia",team2:"Egypt",score:{ft:[1,1],pen:[2,4]},ground:"AT&T Stadium, Dallas"},
   // ── ROUND OF 16 ──────────────────────────────────────────────────────────
   {round:"Round of 16",match:89,date:"2026-07-04",time:"17:00 UTC-4",team1:"W74",team2:"W77",note:"Paraguay vs France",ground:"Lincoln Financial Field, Philadelphia"},
   {round:"Round of 16",match:90,date:"2026-07-04",time:"13:00 UTC-4",team1:"W73",team2:"W75",note:"Canada vs Morocco",ground:"NRG Stadium, Houston"},
@@ -142,7 +142,7 @@ const RAW_MATCHES = [
   {round:"Round of 16",match:93,date:"2026-07-06",time:"15:00 UTC-4",team1:"W83",team2:"W84",note:"Portugal vs Spain",ground:"AT&T Stadium, Dallas"},
   {round:"Round of 16",match:94,date:"2026-07-06",time:"20:00 UTC-4",team1:"W81",team2:"W82",note:"Belgium vs USA",ground:"Lumen Field, Seattle"},
   {round:"Round of 16",match:95,date:"2026-07-07",time:"12:00 UTC-4",team1:"W86",team2:"W88",note:"Argentina vs Egypt",ground:"Mercedes-Benz Stadium, Atlanta"},
-  {round:"Round of 16",match:96,date:"2026-07-07",time:"16:00 UTC-4",team1:"W85",team2:"W87",note:"Switzerland vs Colombia/Ghana winner",ground:"BC Place, Vancouver"},
+  {round:"Round of 16",match:96,date:"2026-07-07",time:"16:00 UTC-4",team1:"W85",team2:"W87",note:"Switzerland vs Colombia",ground:"BC Place, Vancouver"},
   // ── QUARTER-FINALS ────────────────────────────────────────────────────────
   {round:"Quarter-final",match:97,date:"2026-07-09",time:"16:00 UTC-4",team1:"W89",team2:"W90",note:"Winner M89 vs Winner M90",ground:"Boston (Foxborough)"},
   {round:"Quarter-final",match:98,date:"2026-07-10",time:"12:00 UTC-7",team1:"W93",team2:"W94",note:"Winner M93 vs Winner M94",ground:"Los Angeles (Inglewood)"},
@@ -547,19 +547,24 @@ function BracketTab({now, tx, todayData}) {
       }
     }
     if (m.score) {
-      var s = m.score.ft[0]+"\u2013"+m.score.ft[1];
-      if (m.score.pen) s += " (" + m.score.pen[0] + "\u2013" + m.score.pen[1] + " pens)";
-      return s;
+      var ft = m.score.ft;
+      // Show AET score if available, else FT
+      var mainScore = m.score.aet ? m.score.aet[0]+"\u2013"+m.score.aet[1]+" (AET)" : ft[0]+"\u2013"+ft[1];
+      if (m.score.pen) mainScore += " ("+m.score.pen[0]+"\u2013"+m.score.pen[1]+" pens)";
+      return mainScore;
     }
     return null;
   }
 
-  // Get winner team accounting for penalties on draws
   function getWinner(m) {
     if (!m.score) return null;
+    // Penalties take precedence
+    if (m.score.pen) return m.score.pen[0] > m.score.pen[1] ? m.team1 : m.team2;
+    // AET score
+    if (m.score.aet) return m.score.aet[0] > m.score.aet[1] ? m.team1 : m.team2;
+    // FT score
     var h = m.score.ft[0], a = m.score.ft[1];
     if (h !== a) return h > a ? m.team1 : m.team2;
-    if (m.score.pen) return m.score.pen[0] > m.score.pen[1] ? m.team1 : m.team2;
     return null;
   }
 
