@@ -719,4 +719,21 @@ function App() {
     tab==="schedule"  && h(ScheduleTab,{now:now,tx:tx,liveData:liveData,todayData:todayData}),
     tab==="standings" && h(StandingsTab,{tx:tx,todayData:todayData}),
     tab==="forecast"  && h(ForecastTab,{now:now,tx:tx,liveData:liveData}),
-    tab==="knockouts" && h(KnockoutsTab,{now:now,tx:tx,todayData:todayData})
+    tab==="knockouts" && h(KnockoutsTab,{now:now,tx:tx,todayData:todayData}),
+    h("div",{style:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:"1px solid "+C.border,display:"flex",zIndex:20}},
+      TABS.map(function(t){return h("button",{key:t.id,onClick:function(){setTab(t.id);},style:{flex:1,padding:"10px 4px 8px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.gold:C.muted,fontSize:10,fontWeight:tab===t.id?700:400,letterSpacing:"0.05em",transition:"color 0.15s",position:"relative"}},
+        h("div",{style:{position:"relative",display:"inline-block"}},
+          h("span",{style:{fontSize:19,lineHeight:1}},t.icon),
+          t.dot && h("div",{style:{position:"absolute",top:-2,right:-4,width:7,height:7,borderRadius:"50%",background:C.red,animation:"pulse 1.5s infinite"}})
+        ),
+        t.label
+      );})
+    )
+  );
+}
+
+var root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(h(App, null));
+</script>
+</body>
+</html>
